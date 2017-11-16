@@ -1,0 +1,48 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" >
+
+
+    <TextView
+        android:text="Share with users"
+        android:layout_marginTop="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/tvSelectUser"
+        android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+    <AutoCompleteTextView
+        android:id="@+id/autoTvSearchUser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tvSelectUser"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="21dp"
+        android:textAlignment="center"
+        android:hint="E-mail / Username"
+        android:layout_margin="20dp"
+        android:inputType="text"
+        android:imeOptions="actionNext"
+        android:maxLines="1" />
+
+    <ListView
+        android:id="@+id/lvUsers"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/autoTvSearchUser"
+        android:layout_above="@+id/btnContinue2" />
+
+    <Button
+        android:id="@+id/btnContinue2"
+        android:text="Continue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="5dp" />
+</RelativeLayout>

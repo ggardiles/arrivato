@@ -1,0 +1,29 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" >
+
+    <android.support.design.widget.TabLayout
+        android:id="@+id/tabLayout"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent">
+
+        <android.support.design.widget.TabItem
+            android:text="@string/tab_share_arrival"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent" />
+        <android.support.design.widget.TabItem
+            android:text="@string/tab_track_arrival"
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent" />
+
+    </android.support.design.widget.TabLayout>
+
+    <FrameLayout
+        android:id="@+id/fragmentWrap"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/tabLayout"/>
+
+</RelativeLayout>

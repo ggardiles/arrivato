@@ -1,4 +1,4 @@
-package com.example.gabriel.mapsstarter2;
+package com.example.gabriel.mapsstarter2.activities;
 
 import com.google.android.gms.maps.model.LatLng;
 import java.util.HashSet;
@@ -9,5 +9,8 @@ import java.util.HashSet;
 public interface OnDataListener {
     void onLocationReady(LatLng origin, LatLng destination);
     void onUsernameReady(HashSet<String> usernames);
+    void setPageState(String fragmentName);
+    void setTripID(String id);
     void getConfirmationData();
+    void getSharingData();
 }

@@ -1,4 +1,4 @@
-package com.example.gabriel.mapsstarter2;
+package com.example.gabriel.mapsstarter2.fragments.share;
 
 
 import android.app.FragmentTransaction;
@@ -13,9 +13,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.gabriel.mapsstarter2.utils.DirectionsApiClient;
+import com.example.gabriel.mapsstarter2.activities.OnDataListener;
+import com.example.gabriel.mapsstarter2.R;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.places.Place;
@@ -30,15 +32,12 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.loopj.android.http.AsyncHttpResponseHandler;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import cz.msebera.android.httpclient.Header;
@@ -49,7 +48,7 @@ import static android.app.Activity.RESULT_OK;
  * A simple {@link Fragment} subclass.
  */
 public class PathFragment extends Fragment implements OnMapReadyCallback, View.OnClickListener{
-    private static final String LOG_TAG = "PathFragment";
+    private static final String TAG = "PathFragment";
     private static final LatLng HALSTED = new LatLng(41.942683, -87.649343);
     private static final LatLng STRATFORD = new LatLng(41.94561420000001,-87.64343509999998);
     private static final int PADDING = 350;
@@ -80,7 +79,10 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        Log.d(LOG_TAG, "Event: onCreateView");
+        Log.d(TAG, "onCreateView()");
+
+        // Set Page State in MainActivity
+        mCallback.setPageState(getString(R.string.path));
 
         /**
          * MANAGE CHILD FRAGMENTS
@@ -122,7 +124,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        Log.d(LOG_TAG, "Event: onMapReady");
+        Log.d(TAG, "Event: onMapReady");
 
         if (googleMap == null) {
             Toast.makeText(getActivity().getApplicationContext(), "Error - Map was null!!", Toast.LENGTH_SHORT).show();
@@ -134,7 +136,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
 
             @Override
             public void onMapLoaded() {
-                Log.d(LOG_TAG, "Event: onMapLoaded");
+                Log.d(TAG, "Event: onMapLoaded");
 
                 origin = gMap.addMarker(new MarkerOptions().position(HALSTED)
                         .title("Origin")
@@ -150,19 +152,19 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != RESULT_OK) {
-            Log.d(LOG_TAG, "OnActivityResult: RESULT NOT OK");
+            Log.d(TAG, "OnActivityResult: RESULT NOT OK");
             return;
         }
 
         if (requestCode == PLACE_PICKER_REQUEST) {
-            Log.d(LOG_TAG, "OnActivityResult: PLACE_PICKER_REQUEST");
+            Log.d(TAG, "OnActivityResult: PLACE_PICKER_REQUEST");
 
             Place place = PlacePicker.getPlace(getContext(), data);
 
             destination = gMap.addMarker(new MarkerOptions().position(place.getLatLng())
                     .title("Destination"));
 
-            Log.d(LOG_TAG, "Destination LatLong: " + place.getLatLng().toString());
+            Log.d(TAG, "Destination LatLong: " + place.getLatLng().toString());
 
             // Draw route
             queryDirectionsAPI(origin.getPosition(), place.getLatLng());
@@ -177,7 +179,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
         switch (v.getId()){
 
             case R.id.btnDestination:
-                Log.d(LOG_TAG, "OnClick: btnDestination");
+                Log.d(TAG, "OnClick: btnDestination");
                 PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
 
                 try {
@@ -190,7 +192,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
                 break;
 
             case R.id.btnContinue:
-                Log.d(LOG_TAG, "OnClick: btnContinue");
+                Log.d(TAG, "OnClick: btnContinue");
                 if (destination == null){
                     Toast.makeText(getActivity().getApplicationContext(),
                             "Set destination first", Toast.LENGTH_SHORT).show();
@@ -230,7 +232,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
     }
 
     private void queryDirectionsAPI(LatLng origin, LatLng destination) {
-        Log.d(LOG_TAG, "queryDirectionsAPI: " + origin.toString() + " to " + destination.toString());
+        Log.d(TAG, "queryDirectionsAPI: " + origin.toString() + " to " + destination.toString());
         DirectionsApiClient.getDirections(origin, destination, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
@@ -241,7 +243,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
                     JSONObject routes = (JSONObject) response.getJSONArray("routes").get(0);
                     JSONObject overviewPolyline = routes.getJSONObject("overview_polyline");
                     String encodedPolyline = overviewPolyline.getString("points");
-                    Log.d(LOG_TAG, encodedPolyline);
+                    Log.d(TAG, encodedPolyline);
 
                     // Get waypoints from encoded polyline
                     List<LatLng> waypoints = decodePoly(encodedPolyline);

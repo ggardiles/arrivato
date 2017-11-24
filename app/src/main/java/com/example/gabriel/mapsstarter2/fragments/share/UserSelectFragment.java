@@ -1,7 +1,6 @@
-package com.example.gabriel.mapsstarter2;
+package com.example.gabriel.mapsstarter2.fragments.share;
 
 
-import android.app.Activity;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.os.Bundle;
@@ -11,7 +10,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewParent;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -19,24 +17,18 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.example.gabriel.mapsstarter2.activities.OnDataListener;
+import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.models.User;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-
-import static android.content.ContentValues.TAG;
 
 
 /**
@@ -45,7 +37,7 @@ import static android.content.ContentValues.TAG;
 public class UserSelectFragment extends Fragment implements View.OnClickListener, AdapterView.OnItemClickListener {
 
     // Global Constant Fields
-    private static final String LOG_TAG = "UserSelectFragment";
+    private static final String TAG = "UserSelectFragment";
 
     // Global variables
     private ArrayList<String> users;
@@ -53,6 +45,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     private double[] origin, destination;
     private ArrayAdapter<String> adapter;
     private OnDataListener mCallback;
+    private FirebaseFirestore db;
 
     // UI Widgets
     private Button btnSubmit;
@@ -82,6 +75,12 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
+        Log.d(TAG, "onCreateView()");
+
+        // Set Page State in MainActivity
+        mCallback.setPageState(getString(R.string.user_select));
+
+        // Inflate the layout for this fragment
         View userSelectView = inflater.inflate(R.layout.fragment_user_select, container, false);
 
         // Instantiate UI Widgets
@@ -108,7 +107,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
     private void loadUserList(){
         // Get Firestore Instance
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         // Query Firestore for users
         db.collection(getString(R.string.users_collection))
@@ -121,29 +120,44 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
                             // For every user add its username to list
                             for (DocumentSnapshot document : task.getResult()) {
-                                Log.d(LOG_TAG, document.getId() + " => " + document.getData());
+                                Log.d(TAG, document.getId() + " => " + document.getData());
                                 User user = document.toObject(User.class);
                                 users.add(user.getUsername());
                             }
 
+                            if (getActivity() == null){
+                                return;
+                            }
                             // Load AutoTextView with users username content
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(),
                                     android.R.layout.simple_dropdown_item_1line, users);
                             autoTvSearchUser.setAdapter(adapter);
 
                         } else {
-                            Log.d(LOG_TAG, "Error getting documents: ", task.getException());
+                            Log.d(TAG, "Error getting documents: ", task.getException());
                         }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        e.printStackTrace();
                     }
                 });
 
+    }
+
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
     }
 
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btnContinue2:
-                Log.d(LOG_TAG, "Button submit pressed");
+                Log.d(TAG, "Button submit pressed");
                 if (selectedUsernames.isEmpty()){
                     Toast.makeText(getActivity().getApplicationContext(),
                             "Select viewers first!", Toast.LENGTH_SHORT).show();
@@ -172,7 +186,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
         // Get Username
         String selected = (String) parent.getItemAtPosition(position);
-        Log.d(LOG_TAG, "AutoCompleteTextview Item Selected: " + selected);
+        Log.d(TAG, "AutoCompleteTextview Item Selected: " + selected);
         //int pos = users.indexOf(selected);
 
         // Add Username to Set

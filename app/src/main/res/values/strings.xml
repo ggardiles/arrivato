@@ -12,4 +12,12 @@
 
     <!-- Firestore -->
     <string name="users_collection">users</string>
+    <string name="trips_collection">trips</string>
+
+    <!-- Fragment Pages -->
+    <string name="path">PathFragment</string>
+    <string name="user_select">UserSelectFragment</string>
+    <string name="confirmation">ConfirmationFragment</string>
+    <string name="sharing">SharingFragment</string>
+
 </resources>

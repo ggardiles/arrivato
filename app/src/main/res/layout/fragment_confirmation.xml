@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity" >
+    tools:context=".activities.MainActivity" >
 
 
     <TextView
@@ -17,8 +17,8 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
 
     <TextView
-        android:id="@+id/tvConfirmationFrom"
-        android:text="From: 3335 N Halsted St"
+        android:id="@+id/tvFrom"
+        android:text="From: "
         android:layout_marginTop="5dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -27,12 +27,12 @@
         android:textAppearance="@style/TextAppearance.AppCompat.Body2" />
 
     <TextView
-        android:id="@+id/tvConfirmationTo"
-        android:text="To: Rocks Burguer"
+        android:id="@+id/tvTo"
+        android:text="To:   "
         android:layout_marginTop="5dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/tvConfirmationFrom"
+        android:layout_below="@+id/tvFrom"
         android:layout_alignParentLeft="true"
         android:textAppearance="@style/TextAppearance.AppCompat.Body2" />
 
@@ -42,7 +42,7 @@
         android:layout_marginTop="16dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/tvConfirmationTo"
+        android:layout_below="@+id/tvTo"
         android:layout_centerHorizontal="true"
         android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
 

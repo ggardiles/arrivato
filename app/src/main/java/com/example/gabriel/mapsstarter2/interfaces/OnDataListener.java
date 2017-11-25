@@ -1,4 +1,4 @@
-package com.example.gabriel.mapsstarter2.activities;
+package com.example.gabriel.mapsstarter2.interfaces;
 
 import com.google.android.gms.maps.model.LatLng;
 import java.util.HashSet;

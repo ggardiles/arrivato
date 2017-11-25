@@ -13,7 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.gabriel.mapsstarter2.R;
-import com.example.gabriel.mapsstarter2.activities.OnDataListener;
+import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 
 
 /**

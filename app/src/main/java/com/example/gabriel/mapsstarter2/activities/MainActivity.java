@@ -9,10 +9,10 @@ import android.util.Log;
 
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.fragments.share.ConfirmationFragment;
-import com.example.gabriel.mapsstarter2.fragments.share.PathFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.SharingFragment;
 import com.example.gabriel.mapsstarter2.fragments.track.TrackArrivalFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.UserSelectFragment;
+import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.google.android.gms.maps.model.LatLng;
 
 import java.util.HashSet;

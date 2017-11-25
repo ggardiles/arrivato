@@ -17,7 +17,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.example.gabriel.mapsstarter2.activities.OnDataListener;
+import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.models.User;
 import com.google.android.gms.tasks.OnCompleteListener;

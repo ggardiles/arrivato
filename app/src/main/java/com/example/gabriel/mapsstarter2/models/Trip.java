@@ -4,6 +4,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 
 /**
  * Created by gabriel on 24/11/17.
@@ -32,8 +33,10 @@ public class Trip {
     public HashMap<String, Object> getCustomHashMap(){
         HashMap<String, Object> map = new HashMap<>();
         map.put("traveler", traveler);
-        map.put("location", String.format("%f, %f", location.latitude, location.longitude));
-        map.put("destination", String.format("%f, %f", destination.latitude, destination.longitude));
+        map.put("location",
+                String.format(Locale.US, "%f, %f", location.latitude, location.longitude));
+        map.put("destination",
+                String.format(Locale.US, "%f, %f", destination.latitude, destination.longitude));
         map.put("destinationStr", destinationStr);
         for (String username : viewers){
             map.put("user_" + username, true);

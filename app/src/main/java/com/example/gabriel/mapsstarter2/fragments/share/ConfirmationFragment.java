@@ -3,6 +3,7 @@ package com.example.gabriel.mapsstarter2.fragments.share;
 
 import android.app.FragmentTransaction;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
@@ -20,6 +21,7 @@ import android.widget.TextView;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.models.Trip;
+import com.example.gabriel.mapsstarter2.services.GeolocationService;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -138,7 +140,11 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
             case R.id.btnConfirm:
                 Log.d(TAG, "Button confirmation pressed");
 
+                // Publish trip to Firebase
                 publishTrip();
+
+                // Start GeolocationService
+                startGeolocationService();
 
                 // Prepare Fragment Transition
                 SharingFragment fragment = new SharingFragment();
@@ -152,6 +158,16 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
                 transaction.commit();
                 break;
         }
+    }
+
+    private void startGeolocationService() {
+        Intent intent = new Intent(getActivity(), GeolocationService.class);
+        intent.putExtra("origin_latitude", origin.latitude);
+        intent.putExtra("destination_latitude", destination.latitude);
+        intent.putExtra("origin_longitude", origin.longitude);
+        intent.putExtra("destination_longitude", destination.longitude);
+
+        getActivity().startService(intent);
     }
 
     private void publishTrip() {

@@ -2,11 +2,14 @@ package com.example.gabriel.mapsstarter2.activities;
 
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
+import com.example.gabriel.mapsstarter2.Manifest;
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.fragments.share.ConfirmationFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.SharingFragment;
@@ -19,7 +22,7 @@ import java.util.HashSet;
 
 public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSelectedListener, OnDataListener {
 
-    private static final String LOG_TAG = "MAIN_ACTIVITY";
+    private static final String TAG = "MainActivity";
     private TabLayout tabLayout;
 
     protected HashSet<String> selectedUsernames;
@@ -32,6 +35,19 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Ask for Geolocation permissions
+        boolean permissionGranted =
+                ActivityCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        && ActivityCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+        if(permissionGranted) {
+            // {Some Code}
+            Log.d(TAG, "Permission Granted");
+        } else {
+            Log.d(TAG, "Permission NOT Granted");
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 200);
+        }
 
         //PathFragment gMapFragment = new PathFragment();
         Fragment gMapFragment = new UserSelectFragment();
@@ -62,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
     @Override
     public void onTabSelected(TabLayout.Tab tab) {
-        //Log.d(LOG_TAG, String.valueOf(tab.getPosition()));
+        //Log.d(TAG, String.valueOf(tab.getPosition()));
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         Fragment fragment = null;
 
@@ -91,42 +107,42 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
     @Override
     public void onTabUnselected(TabLayout.Tab tab) {
-        //Log.d(LOG_TAG, "onTabUnselected");
+        //Log.d(TAG, "onTabUnselected");
     }
 
     @Override
     public void onTabReselected(TabLayout.Tab tab) {
-        //Log.d(LOG_TAG, "onTabReselected");
+        //Log.d(TAG, "onTabReselected");
     }
 
     @Override
     public void onLocationReady(LatLng origin, LatLng destination) {
-        Log.d(LOG_TAG, "onLocationReady: " + String.valueOf(origin) + ", " + destination.toString());
+        Log.d(TAG, "onLocationReady: " + String.valueOf(origin) + ", " + destination.toString());
         this.origin = origin;
         this.destination = destination;
     }
 
     @Override
     public void onUsernameReady(HashSet<String> usernames) {
-        Log.d(LOG_TAG, "onUsernameReady: " + String.valueOf(selectedUsernames));
+        Log.d(TAG, "onUsernameReady: " + String.valueOf(selectedUsernames));
         this.selectedUsernames = usernames;
     }
 
     @Override
     public void setPageState(String fragmentName) {
-        Log.d(LOG_TAG, "setPageState: " + fragmentName);
+        Log.d(TAG, "setPageState: " + fragmentName);
         this.fragmentState = fragmentName;
     }
 
     @Override
     public void setTripID(String id) {
-        Log.d(LOG_TAG, "setTripID: " + id);
+        Log.d(TAG, "setTripID: " + id);
         this.tripID = id;
     }
 
     @Override
     public void getConfirmationData() {
-        Log.d(LOG_TAG, "getConfirmationData: " + selectedUsernames.toString());
+        Log.d(TAG, "getConfirmationData: " + selectedUsernames.toString());
         ConfirmationFragment frag = (ConfirmationFragment)
                 getFragmentManager().findFragmentById(R.id.fragmentWrap);
 
@@ -141,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
     @Override
     public void getSharingData() {
-        Log.d(LOG_TAG, "getSharingData()");
+        Log.d(TAG, "getSharingData()");
         SharingFragment frag = (SharingFragment)
                 getFragmentManager().findFragmentById(R.id.fragmentWrap);
 

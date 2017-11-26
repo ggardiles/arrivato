@@ -2,6 +2,7 @@ package com.example.gabriel.mapsstarter2.fragments.share;
 
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.util.Log;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
+import com.example.gabriel.mapsstarter2.services.GeolocationService;
 
 
 /**
@@ -75,7 +77,11 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.btnCancel:
-                Toast.makeText(getActivity(), "CANCEL TO BE IMPl", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), "CANCELED TRIP", Toast.LENGTH_SHORT).show();
+
+                // Stop Geolocation Service
+                Intent intent = new Intent(getActivity(), GeolocationService.class);
+                getActivity().stopService(intent);
                 break;
         }
     }

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:padding="16dp"
+    >
+
+    <android.support.v7.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/cv">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            >
+
+            <ImageView
+                android:layout_width="90dp"
+                android:layout_height="90dp"
+                android:id="@+id/iv_trip_icon"
+                android:layout_alignParentLeft="true"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="7dp"
+                app:srcCompat="@drawable/trip" />
+
+            <LinearLayout
+                android:id="@+id/LLMinutes"
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_toRightOf="@+id/iv_trip_icon">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_ttd"
+                    android:text="7 days 5 mins"
+                    android:textSize="27sp"
+                    android:textColor="@android:color/black"
+                    />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_username"
+                    android:text="\@ggardiles"
+                    android:layout_marginTop="5sp"
+                    android:textSize="20sp"
+                    android:textColor="@color/cardview_dark_background" />
+
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_destination"
+                    android:text="3335 N Halsted St"
+                    android:layout_marginRight="10sp"
+                    android:textIsSelectable="true"
+                    />
+            </LinearLayout>
+
+            <!--
+                        <LinearLayout
+                            android:id="@+id/LLMinutes"
+                            android:orientation="vertical"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_alignParentRight="true"
+                            android:layout_centerVertical="true" >
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/tv_ttd2"
+                                android:text="7"
+                                android:textSize="30sp"
+                                android:textAlignment="center"
+                                android:textColor="@android:color/black" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:id="@+id/tv_min"
+                                android:text="min"
+                                android:textSize="25sp"
+                                android:textAlignment="center"
+                                android:textColor="@android:color/black" />
+
+                        </LinearLayout>-->
+
+
+
+
+
+        </RelativeLayout>
+
+    </android.support.v7.widget.CardView>
+
+</LinearLayout>

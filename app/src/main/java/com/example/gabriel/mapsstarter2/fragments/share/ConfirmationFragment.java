@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
@@ -45,12 +46,14 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
     private String originAddress, destAddress;
     private LatLng origin, destination;
     private FirebaseFirestore db;
+    private String tripID;
 
     // UI Widgets
     private ListView lvViewers;
     private TextView tvFrom, tvTo;
     private HashSet<String> usernames;
     private Button btnConfirm;
+    private ProgressBar pbAddress;
 
     public ConfirmationFragment() {}
 
@@ -90,6 +93,9 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         tvTo = (TextView) v.findViewById(R.id.tvTo);
         btnConfirm = (Button) v.findViewById(R.id.btnConfirm);
         btnConfirm.setOnClickListener(this);
+        btnConfirm.setEnabled(false);
+        pbAddress = (ProgressBar) v.findViewById(R.id.pb_address);
+        pbAddress.setVisibility(ProgressBar.VISIBLE);
 
         // Ask Main Activity for Confirmation Data
         mCallback.getConfirmationData();
@@ -97,6 +103,9 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         return v;
     }
     private String latlngToAddress(LatLng position){
+        if (getActivity() == null){
+            return "";
+        }
         Geocoder geocoder = new Geocoder(getActivity());
         try {
             List<Address> addresses =
@@ -111,6 +120,9 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         } catch (IOException e) {
             e.printStackTrace();
             return null;
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            return null;
         }
 
     }
@@ -119,14 +131,12 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
 
         this.origin = origin;
         this.destination = destination;
-        this.originAddress = latlngToAddress(origin);
-        this.destAddress = latlngToAddress(destination);
-        this.usernames = usernames;
 
-        tvFrom.setText("From: " + this.originAddress);
-        tvTo.setText("To:   " + this.destAddress);
+        // Update Textview with addressess on separate thread
+        new Thread(new TranslateToAddress()).start();
 
         // Load usernames to ListView
+        this.usernames = usernames;
         adapter.clear();
         adapter.addAll(new ArrayList<>(usernames));
         adapter.notifyDataSetChanged();
@@ -140,31 +150,19 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
             case R.id.btnConfirm:
                 Log.d(TAG, "Button confirmation pressed");
 
-                // Publish trip to Firebase
+                // Publish trip to Firebase And Start GeoLocation Service
                 publishTrip();
 
-                // Start GeolocationService
-                startGeolocationService();
-
-                // Prepare Fragment Transition
-                SharingFragment fragment = new SharingFragment();
-                FragmentTransaction transaction = getFragmentManager().beginTransaction();
-
-                // Replace fragment and add to back stack
-                transaction.replace(R.id.fragmentWrap, fragment);
-                transaction.addToBackStack(null);
-
-                // Commit the transaction
-                transaction.commit();
                 break;
         }
     }
 
     private void startGeolocationService() {
         Intent intent = new Intent(getActivity(), GeolocationService.class);
-        intent.putExtra("origin_latitude", origin.latitude);
-        intent.putExtra("destination_latitude", destination.latitude);
+        intent.putExtra("trip_id", tripID);
+        intent.putExtra("origin_latitude",  origin.latitude);
         intent.putExtra("origin_longitude", origin.longitude);
+        intent.putExtra("destination_latitude",  destination.latitude);
         intent.putExtra("destination_longitude", destination.longitude);
 
         getActivity().startService(intent);
@@ -175,7 +173,8 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         // Get Firestore Instance
         db = FirebaseFirestore.getInstance();
 
-        Trip trip = new Trip("ID", origin, destination, destAddress, usernames);
+        // Create Trip Object
+        Trip trip = new Trip("ggardiles", origin, destination, destAddress, usernames);
         
         // Query Firestore for users
         db.collection(getString(R.string.trips_collection))
@@ -184,7 +183,16 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
                     @Override
                     public void onSuccess(DocumentReference documentReference) {
                         Log.d(TAG, "DocumentSnapshot written with ID: " + documentReference.getId());
+
+                        // Save Trip ID
+                        tripID = documentReference.getId();
                         mCallback.setTripID(documentReference.getId());
+
+                        // Start GeolocationService
+                        startGeolocationService();
+
+                        // Next Fragment
+                        nextFragment();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
@@ -193,5 +201,48 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
                         Log.w(TAG, "Error adding document", e);
                     }
                 });
+    }
+
+    private class TranslateToAddress implements Runnable {
+        @Override
+        public void run() {
+            // Get Addressess
+            originAddress = latlngToAddress(origin);
+            destAddress = latlngToAddress(destination);
+
+            // Notify MainActivity
+            mCallback.setStrAddresses(originAddress, destAddress);
+
+            if (getActivity() != null) {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        pbAddress.setVisibility(ProgressBar.GONE);
+
+                        // Update Textviews
+                        tvFrom.setText(originAddress);
+                        tvTo.setText(destAddress);
+
+                        // Enable Confirm Button
+                        btnConfirm.setEnabled(true);
+                    }
+                });
+            }
+
+
+        }
+    }
+
+    private void nextFragment(){
+        // Prepare Fragment Transition
+        SharingFragment fragment = new SharingFragment();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+
+        // Replace fragment and add to back stack
+        transaction.replace(R.id.fragmentWrap, fragment);
+        transaction.addToBackStack(null);
+
+        // Commit the transaction
+        transaction.commit();
     }
 }

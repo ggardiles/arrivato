@@ -40,8 +40,13 @@ public class TripsAdapter extends RecyclerView.Adapter<TripsAdapter.TripViewHold
         Trip trip = trips.get(position);
         tvh.tvUsername.setText("@"+trip.getTraveler());
         tvh.tvDestination.setText(trip.getDestinationStr());
-        tvh.tvTTD.setText(trip.getTTD());
-        tvh.tvTTD.setTextIsSelectable(true);
+        if (trip.getStatus() == Trip.STARTED){
+            tvh.tvTTD.setText(trip.getTTD());
+            tvh.tvTTD.setTextIsSelectable(true);
+        } else {
+            tvh.tvTTD.setText(trip.getStatus());
+        }
+
     }
 
     @Override

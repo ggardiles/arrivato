@@ -1,13 +1,17 @@
 package com.example.gabriel.mapsstarter2.fragments.share;
 
 
+import android.Manifest;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.location.Location;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +24,8 @@ import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.R;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.CameraUpdate;
@@ -32,6 +38,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
 import org.json.JSONException;
@@ -47,23 +54,30 @@ import static android.app.Activity.RESULT_OK;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class PathFragment extends Fragment implements OnMapReadyCallback, View.OnClickListener{
+public class PathFragment extends Fragment
+        implements OnMapReadyCallback,
+        View.OnClickListener,
+        GoogleMap.OnMyLocationButtonClickListener{
+
+    // Global Constant Fields
     private static final String TAG = "PathFragment";
     private static final LatLng HALSTED = new LatLng(41.942683, -87.649343);
-    private static final LatLng STRATFORD = new LatLng(41.94561420000001,-87.64343509999998);
+    private static final LatLng STRATFORD = new LatLng(41.94561420000001, -87.64343509999998);
     private static final int PADDING = 350;
     private static final int PLACE_PICKER_REQUEST = 1;
-
-    // Global Views
-    private Button btnContinue;
-    private FloatingActionButton btnDestination;
 
     // Global Variables
     private GoogleMap gMap;
     private Marker origin, destination;
     private OnDataListener mCallback;
+    private FusedLocationProviderClient mFusedLocationClient;
 
-    public PathFragment() {}
+    // Global UI Widgets
+    private Button btnContinue;
+    private FloatingActionButton btnDestination;
+
+    public PathFragment() {
+    }
 
     @Override
     public void onAttach(Context context) {
@@ -84,6 +98,8 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
         // Set Page State in MainActivity
         mCallback.setPageState(getString(R.string.path));
 
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
+
         /**
          * MANAGE CHILD FRAGMENTS
          */
@@ -99,7 +115,7 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
         transaction.commit();
 
         // Load Map Async
-        if (gMapFragment != null){
+        if (gMapFragment != null) {
             gMapFragment.getMapAsync(this);
             //return gMapFragment.getView();
         } else {
@@ -132,17 +148,41 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
         }
 
         gMap = googleMap;
+        if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Location Permissions were NOT granted");
+            return;
+        }
+        // Display Button Return Map to my location
+        gMap.setMyLocationEnabled(true);
+        gMap.setOnMyLocationButtonClickListener(this);
+
+        // Map is Loaded
         gMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
 
             @Override
             public void onMapLoaded() {
                 Log.d(TAG, "Event: onMapLoaded");
 
-                origin = gMap.addMarker(new MarkerOptions().position(HALSTED)
-                        .title("Origin")
-                        .snippet("Current Location"));
+                if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                        && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    Log.w(TAG, "Location Permissions were NOT granted");
+                    return;
+                }
+                mFusedLocationClient.getLastLocation()
+                        .addOnSuccessListener(getActivity(), new OnSuccessListener<Location>() {
+                            @Override
+                            public void onSuccess(Location location) {
+                                // Got last known location. In some rare situations this can be null.
+                                if (location != null) {
+                                    origin = gMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude()))
+                                            .title("Origin")
+                                            .snippet("Current Location"));
 
-                autoCameraUpdate();
+                                    autoCameraUpdate();
+                                }
+                            }
+                        });
             }
         });
 
@@ -216,17 +256,29 @@ public class PathFragment extends Fragment implements OnMapReadyCallback, View.O
         }
     }
 
+    @Override
+    public boolean onMyLocationButtonClick() {
+        autoCameraUpdate();
+        return false;
+    }
+
     private void autoCameraUpdate(){
         ArrayList<Marker> markers = new ArrayList<Marker>();
         if (origin != null) markers.add(origin);
         if (destination != null) markers.add(destination);
+
 
         LatLngBounds.Builder builder = new LatLngBounds.Builder();
         for (Marker marker : markers) {
             builder.include(marker.getPosition());
         }
         LatLngBounds bounds = builder.build();
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, PADDING);
+        CameraUpdate cameraUpdate =
+                CameraUpdateFactory.newLatLngBounds(bounds, PADDING);
+        if (markers.size() == 1){
+            cameraUpdate =
+                    CameraUpdateFactory.newLatLngZoom(origin.getPosition(), 15.0f);
+        }
         //gMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0));
         gMap.animateCamera(cameraUpdate);
     }

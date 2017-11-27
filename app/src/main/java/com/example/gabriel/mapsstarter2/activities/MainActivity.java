@@ -12,6 +12,7 @@ import android.util.Log;
 import com.example.gabriel.mapsstarter2.Manifest;
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.fragments.share.ConfirmationFragment;
+import com.example.gabriel.mapsstarter2.fragments.share.PathFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.SharingFragment;
 import com.example.gabriel.mapsstarter2.fragments.track.TrackArrivalFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.UserSelectFragment;
@@ -36,26 +37,24 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Ask for Geolocation permissions
-        boolean permissionGranted =
-                ActivityCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                        && ActivityCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
-
-        if(permissionGranted) {
-            // {Some Code}
-            Log.d(TAG, "Permission Granted");
-        } else {
-            Log.d(TAG, "Permission NOT Granted");
+        // Ask for Geolocation permissions if not granted
+        if(ActivityCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || ActivityCompat.checkSelfPermission(getApplicationContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Location Permission NOT Granted yet");
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 200);
         }
 
-        //PathFragment gMapFragment = new PathFragment();
-        Fragment gMapFragment = new UserSelectFragment();
+        // TODO: Remove when initial fragment is MAP
+        origin = new LatLng(41.942683, -87.649343);
+        destination = new LatLng(41.94561420000001,-87.64343509999998);
+
+        Fragment tabFragment = new PathFragment();
+        //Fragment tabFragment = new UserSelectFragment();
 
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
 
         // Replace fragment and add to back stack
-        transaction.add(R.id.fragmentWrap, gMapFragment);
+        transaction.add(R.id.fragmentWrap, tabFragment);
         transaction.addToBackStack(null);
 
         // Commit the transaction
@@ -95,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
             } else {
                 fragment = new PathFragment();
             }*/
-            fragment = new UserSelectFragment();
+            fragment = new PathFragment();
         } else if(tab.getPosition() == 1){
             fragment = new TrackArrivalFragment();
         }
@@ -120,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         Log.d(TAG, "onLocationReady: " + String.valueOf(origin) + ", " + destination.toString());
         this.origin = origin;
         this.destination = destination;
+
     }
 
     @Override
@@ -135,6 +135,13 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     }
 
     @Override
+    public void setStrAddresses(String origin, String destination) {
+        Log.d(TAG, "setStrAddresses()");
+        this.originAddress = origin;
+        this.destinationAddress = destination;
+    }
+
+    @Override
     public void setTripID(String id) {
         Log.d(TAG, "setTripID: " + id);
         this.tripID = id;
@@ -146,10 +153,6 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         ConfirmationFragment frag = (ConfirmationFragment)
                 getFragmentManager().findFragmentById(R.id.fragmentWrap);
 
-        // TODO: Remove when initial fragment is MAP
-        origin = new LatLng(41.942683, -87.649343);
-        destination = new LatLng(41.94561420000001,-87.64343509999998);
-
         if (frag != null){
             frag.onConfirmationData(origin, destination, selectedUsernames);
         }
@@ -160,10 +163,6 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         Log.d(TAG, "getSharingData()");
         SharingFragment frag = (SharingFragment)
                 getFragmentManager().findFragmentById(R.id.fragmentWrap);
-
-        // TODO: Remove when initial fragment is MAP
-        origin = new LatLng(41.942683, -87.649343);
-        destination = new LatLng(41.94561420000001,-87.64343509999998);
 
         if (frag != null){
             frag.onSharingData(tripID, destinationAddress);

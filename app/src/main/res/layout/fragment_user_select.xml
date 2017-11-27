@@ -24,7 +24,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="21dp"
         android:textAlignment="center"
-        android:hint="E-mail / Username"
+        android:hint="Search by username"
         android:layout_margin="20dp"
         android:inputType="text"
         android:imeOptions="actionNext"

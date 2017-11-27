@@ -113,6 +113,9 @@ public class TrackArrivalFragment extends Fragment {
                             if (doc.contains("ttd")){
                                 trip.setTTD(doc.getString("ttd"));
                             }
+                            if (doc.contains("status")){
+                                trip.setStatus(doc.getString("status"));
+                            }
                             trips.add(trip);
                         }
                         Log.d(TAG, "Current trips: " + trips);

@@ -11,6 +11,9 @@ import java.util.Locale;
  */
 
 public class Trip {
+    public static final String FINISHED = "FINISHED";
+    public static final String STARTED = "STARTED";
+    public static final String CANCELED = "CANCELED";
     private String id;
     private String traveler;
     private LatLng location;
@@ -18,6 +21,7 @@ public class Trip {
     private String destinationStr;
     private String TTD;
     private HashSet<String> viewers;
+    private String status;
 
     public Trip(String traveler, LatLng location, LatLng destination, String destinationStr, HashSet<String> viewers) {
         this.traveler = traveler;
@@ -25,6 +29,7 @@ public class Trip {
         this.destination = destination;
         this.destinationStr = destinationStr;
         this.viewers = viewers;
+        this.status = STARTED;
     }
 
     public Trip() {
@@ -38,6 +43,7 @@ public class Trip {
         map.put("destination",
                 String.format(Locale.US, "%f, %f", destination.latitude, destination.longitude));
         map.put("destinationStr", destinationStr);
+        map.put("status", status);
         for (String username : viewers){
             map.put("user_" + username, true);
         }
@@ -99,5 +105,13 @@ public class Trip {
     public void setViewers(HashSet<String> viewers) {
         this.viewers = viewers;
     }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
 }
 

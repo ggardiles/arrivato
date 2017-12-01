@@ -15,6 +15,8 @@ import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.adapters.TripsAdapter;
 import com.example.gabriel.mapsstarter2.models.Trip;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -88,9 +90,13 @@ public class TrackArrivalFragment extends Fragment {
 
     private void trackMyTrips(){
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null){
+            Log.e(TAG, "User is not logged in");
+            return;
+        }
         Query query = db.collection("trips")
-                .whereEqualTo("user_"+username, true);
+                .whereEqualTo("user_"+user.getEmail().replace(".", ""), true);
         registration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value,

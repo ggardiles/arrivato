@@ -8,7 +8,7 @@ import java.util.HashSet;
  */
 public interface OnDataListener {
     void onLocationReady(LatLng origin, LatLng destination);
-    void onUsernameReady(HashSet<String> usernames);
+    void onEmailsReady(HashSet<String> usernames);
     void setPageState(String fragmentName);
     void setStrAddresses(String origin, String destination);
     void setTripID(String id);

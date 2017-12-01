@@ -26,6 +26,8 @@ import com.example.gabriel.mapsstarter2.services.GeolocationService;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -51,7 +53,7 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
     // UI Widgets
     private ListView lvViewers;
     private TextView tvFrom, tvTo;
-    private HashSet<String> usernames;
+    private HashSet<String> emails;
     private Button btnConfirm;
     private ProgressBar pbAddress;
 
@@ -126,8 +128,8 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         }
 
     }
-    public void onConfirmationData(LatLng origin, LatLng destination, HashSet<String> usernames){
-        Log.d(TAG, "onConfirmationData(): " + new ArrayList<>(usernames).toString());
+    public void onConfirmationData(LatLng origin, LatLng destination, HashSet<String> emails){
+        Log.d(TAG, "onConfirmationData(): " + new ArrayList<>(emails).toString());
 
         this.origin = origin;
         this.destination = destination;
@@ -135,10 +137,10 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         // Update Textview with addressess on separate thread
         new Thread(new TranslateToAddress()).start();
 
-        // Load usernames to ListView
-        this.usernames = usernames;
+        // Load emails to ListView
+        this.emails = emails;
         adapter.clear();
-        adapter.addAll(new ArrayList<>(usernames));
+        adapter.addAll(new ArrayList<>(emails));
         adapter.notifyDataSetChanged();
 
     }
@@ -173,8 +175,13 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         // Get Firestore Instance
         db = FirebaseFirestore.getInstance();
 
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null){
+            Log.e(TAG, "User is not authenticated");
+            return;
+        }
         // Create Trip Object
-        Trip trip = new Trip("ggardiles", origin, destination, destAddress, usernames);
+        Trip trip = new Trip(user.getEmail(), origin, destination, destAddress, emails);
         
         // Query Firestore for users
         db.collection(getString(R.string.trips_collection))

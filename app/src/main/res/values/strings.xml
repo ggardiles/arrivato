@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MapsStarter2</string>
+    <string name="app_name">Arrivatto</string>
     <string name="title_activity_maps">Map</string>
 
     <!-- UI Texts -->
@@ -19,5 +19,23 @@
     <string name="user_select">UserSelectFragment</string>
     <string name="confirmation">ConfirmationFragment</string>
     <string name="sharing">SharingFragment</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Strings related to Settings -->
+
+    <!-- Example General settings -->
+    <string name="pref_header_general">General</string>
+
+    <string name="pref_title_display_name">Full Name</string>
+    <string name="pref_default_display_name">Gabriel Garcia</string>
+
+    <string name="pref_title_sign_out">Sign Out</string>
+
+
+    <!-- Example settings for Notifications -->
+    <string name="pref_header_trips">Trips</string>
+
+    <string name="pref_show_canceled_trips">Show Canceled Trips</string>
+    <string name="pref_show_finished_trips">Show Finished Trips</string>
 
 </resources>

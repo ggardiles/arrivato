@@ -102,7 +102,7 @@ public class GeolocationService extends Service {
                 null, asyncTimeDistanceCallback);
 
         // If we get killed, after returning from here, restart
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override

@@ -46,6 +46,7 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import cz.msebera.android.httpclient.Header;
 
@@ -260,6 +261,32 @@ public class PathFragment extends Fragment
     public boolean onMyLocationButtonClick() {
         autoCameraUpdate();
         return false;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        Log.d(TAG, "onAcitivityCreated()");
+        if (savedInstanceState != null) {
+            // Restore last state for checked position.
+            Log.d(TAG, "onAcitivityCreated(): " + savedInstanceState.toString());
+        }
+
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        Log.d(TAG, "onSaveInstanceState()");
+        if (origin != null){
+            outState.putDouble("olat",  origin.getPosition().latitude);
+            outState.putDouble("olong", origin.getPosition().longitude);
+        }
+        if (destination != null){
+            outState.putDouble("dlat",  destination.getPosition().latitude);
+            outState.putDouble("dlong", destination.getPosition().longitude);
+        }
+
     }
 
     private void autoCameraUpdate(){

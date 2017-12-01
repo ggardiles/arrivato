@@ -44,8 +44,8 @@ public class Trip {
                 String.format(Locale.US, "%f, %f", destination.latitude, destination.longitude));
         map.put("destinationStr", destinationStr);
         map.put("status", status);
-        for (String username : viewers){
-            map.put("user_" + username, true);
+        for (String email : viewers){
+            map.put("user_" + email.replace(".",""), true);
         }
         return map;
     }
@@ -113,5 +113,18 @@ public class Trip {
         this.status = status;
     }
 
+    @Override
+    public String toString() {
+        return "Trip{" +
+                "id='" + id + '\'' +
+                ", traveler='" + traveler + '\'' +
+                ", location=" + location +
+                ", destination=" + destination +
+                ", destinationStr='" + destinationStr + '\'' +
+                ", TTD='" + TTD + '\'' +
+                ", viewers=" + viewers +
+                ", status='" + status + '\'' +
+                '}';
+    }
 }
 

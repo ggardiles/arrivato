@@ -29,6 +29,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 
 
 /**
@@ -41,7 +42,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
     // Global variables
     private ArrayList<String> users;
-    private HashSet<String> selectedUsernames = new HashSet<>();
+    private HashSet<String> selectedEmails = new HashSet<>();
     private double[] origin, destination;
     private ArrayAdapter<String> adapter;
     private OnDataListener mCallback;
@@ -96,7 +97,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
         // Register Adapter
         adapter = new ArrayAdapter<>(getActivity(),
-                android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(selectedUsernames));
+                android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(selectedEmails));
         lvUsers.setAdapter(adapter);
 
         // Load User List
@@ -116,19 +117,21 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if (task.isSuccessful()) {
-                            users = new ArrayList<String>();
+                            HashSet<String> usersSet = new HashSet<>();
 
-                            // For every user add its username to list
+                            // For every user add its email to list
                             for (DocumentSnapshot document : task.getResult()) {
                                 Log.d(TAG, document.getId() + " => " + document.getData());
                                 User user = document.toObject(User.class);
-                                users.add(user.getUsername());
+                                usersSet.add(user.getEmail());
                             }
 
                             if (getActivity() == null){
                                 return;
                             }
-                            // Load AutoTextView with users username content
+                            // Load AutoTextView with users email content
+                            Log.d(TAG, usersSet.toString());
+                            users = new ArrayList<>(usersSet);
                             ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(),
                                     android.R.layout.simple_dropdown_item_1line, users);
                             autoTvSearchUser.setAdapter(adapter);
@@ -147,7 +150,6 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
     }
 
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -158,14 +160,14 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
         switch (v.getId()) {
             case R.id.btnContinue2:
                 Log.d(TAG, "Button submit pressed");
-                if (selectedUsernames.isEmpty()){
+                if (selectedEmails.isEmpty()){
                     Toast.makeText(getActivity().getApplicationContext(),
                             "Select viewers first!", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 // Pass data to activity
-                mCallback.onUsernameReady(selectedUsernames);
+                mCallback.onEmailsReady(selectedEmails);
 
                 // Prepare Fragment Transition
                 ConfirmationFragment confirmationFragment = new ConfirmationFragment();
@@ -184,21 +186,21 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-        // Get Username
+        // Get email
         String selected = (String) parent.getItemAtPosition(position);
         Log.d(TAG, "AutoCompleteTextview Item Selected: " + selected);
         //int pos = users.indexOf(selected);
 
-        // Add Username to Set
-        selectedUsernames.add(selected);
+        // Add email to Set
+        selectedEmails.add(selected);
 
         // If users are selected enable continue to next page
-        if (!selectedUsernames.isEmpty()){
+        if (!selectedEmails.isEmpty()){
             btnSubmit.setEnabled(true);
         }
         // Update ListView
         adapter.clear();
-        adapter.addAll(new ArrayList<String>(selectedUsernames));
+        adapter.addAll(new ArrayList<String>(selectedEmails));
         adapter.notifyDataSetChanged();
 
         // Clear SearchBar
@@ -208,7 +210,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     @Override
     public void onResume() {
         super.onResume();
-        if (!selectedUsernames.isEmpty()){
+        if (!selectedEmails.isEmpty()){
             btnSubmit.setEnabled(true);
         }
     }

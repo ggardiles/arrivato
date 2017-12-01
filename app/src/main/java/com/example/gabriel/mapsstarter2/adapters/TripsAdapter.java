@@ -38,9 +38,9 @@ public class TripsAdapter extends RecyclerView.Adapter<TripsAdapter.TripViewHold
     @Override
     public void onBindViewHolder(TripViewHolder tvh, int position) {
         Trip trip = trips.get(position);
-        tvh.tvUsername.setText("@"+trip.getTraveler());
+        tvh.tvUsername.setText(trip.getTraveler());
         tvh.tvDestination.setText(trip.getDestinationStr());
-        if (trip.getStatus() == Trip.STARTED){
+        if (trip.getStatus().equals(Trip.STARTED)){
             tvh.tvTTD.setText(trip.getTTD());
             tvh.tvTTD.setTextIsSelectable(true);
         } else {

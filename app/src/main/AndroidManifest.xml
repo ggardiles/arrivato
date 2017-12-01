@@ -34,9 +34,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <service
             android:name=".services.GeolocationService"
-            android:exported="false"></service>
+            android:exported="false" />
+
+        <activity android:name=".activities.SettingsActivity"
+            android:parentActivityName=".activities.MainActivity">
+
+        </activity>
     </application>
 
 </manifest>

@@ -4,8 +4,10 @@ package com.example.gabriel.mapsstarter2.fragments.share;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,6 +23,8 @@ import com.example.gabriel.mapsstarter2.adapters.TripsAdapter;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.models.Trip;
 import com.example.gabriel.mapsstarter2.services.GeolocationService;
+import com.f2prateek.rx.preferences2.Preference;
+import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -64,6 +68,17 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
                     + " must implement OnHeadlineSelectedListener");
         }
     }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        RxSharedPreferences rxPreferences = RxSharedPreferences.create(preferences);
+        Preference<Float> foo = rxPreferences.getFloat("foo");
+        foo.set(2.0f);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {

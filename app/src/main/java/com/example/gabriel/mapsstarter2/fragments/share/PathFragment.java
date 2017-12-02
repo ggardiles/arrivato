@@ -5,11 +5,13 @@ import android.Manifest;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
@@ -22,6 +24,8 @@ import android.widget.Toast;
 import com.example.gabriel.mapsstarter2.utils.DirectionsApiClient;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.R;
+import com.f2prateek.rx.preferences2.Preference;
+import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -50,6 +54,8 @@ import java.util.List;
 import java.util.Locale;
 
 import cz.msebera.android.httpclient.Header;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 
 import static android.app.Activity.RESULT_OK;
 
@@ -98,6 +104,22 @@ public class PathFragment extends Fragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate()");
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        RxSharedPreferences rxPreferences = RxSharedPreferences.create(preferences);
+        Preference<Float> foo = rxPreferences.getFloat("foo");
+        foo.asObservable().subscribe(new Observer<Float>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(Float foo) {
+                Log.d(TAG, "Foo: " + String.valueOf(foo));
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
     }
 
     @Override

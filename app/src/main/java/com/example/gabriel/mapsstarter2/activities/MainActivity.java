@@ -3,8 +3,10 @@ package com.example.gabriel.mapsstarter2.activities;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
@@ -24,6 +26,8 @@ import com.example.gabriel.mapsstarter2.fragments.track.TrackArrivalFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.UserSelectFragment;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.models.User;
+import com.f2prateek.rx.preferences2.Preference;
+import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.firebase.ui.auth.ResultCodes;
@@ -73,6 +77,13 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         tabLayout = (TabLayout) findViewById(R.id.tabLayout);
         tabLayout.addOnTabSelectedListener(this);
 
+        // SharedPreferences
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(this);
+        RxSharedPreferences rxPreferences = RxSharedPreferences.create(preferences);
+        Preference<Float> foo = rxPreferences.getFloat("foo");
+        foo.set(1.0f);
+        // Authenticate
         authenticate();
         /*
         if (isAuthenticated()) {
@@ -244,7 +255,6 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         // Choose authentication providers
         List<AuthUI.IdpConfig> providers = Arrays.asList(
                 new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
-//                new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build(),
                 new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build());
 
         // Start authentication activity

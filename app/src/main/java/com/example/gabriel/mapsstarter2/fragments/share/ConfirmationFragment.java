@@ -79,6 +79,10 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
 
         Log.d(TAG, "onCreateView()");
 
+        if (container != null) {
+            container.removeAllViews();
+        }
+
         // Set Page State in MainActivity
         mCallback.setPageState(getString(R.string.confirmation));
 
@@ -247,7 +251,11 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
 
         // Replace fragment and add to back stack
         transaction.replace(R.id.fragmentWrap, fragment);
-        transaction.addToBackStack(null);
+
+        // Clear all other fragments in backstack
+        for(int i = 0; i < getFragmentManager().getBackStackEntryCount(); ++i) {
+            getFragmentManager().popBackStack();
+        }
 
         // Commit the transaction
         transaction.commit();

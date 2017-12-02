@@ -37,6 +37,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.loopj.android.http.JsonHttpResponseHandler;
@@ -72,6 +73,8 @@ public class PathFragment extends Fragment
     private Marker origin, destination;
     private OnDataListener mCallback;
     private FusedLocationProviderClient mFusedLocationClient;
+    private List<LatLng> waypoints;
+    private Polyline polyline;
 
     // Global UI Widgets
     private Button btnContinue;
@@ -92,13 +95,39 @@ public class PathFragment extends Fragment
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate()");
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView()");
 
+        View mapView = inflater.inflate(R.layout.fragment_path, container, false);
+
+        // Initialize UI Widgets
+        btnDestination = (FloatingActionButton) mapView.findViewById(R.id.btnDestination);
+        btnContinue = (Button) mapView.findViewById(R.id.btnContinue);
+
+        // Register Listeners
+        btnDestination.setOnClickListener(this);
+        btnContinue.setOnClickListener(this);
+
+
+        if (isRestored()){
+            restoreViewIfNeeded();
+            return mapView;
+        }
+
+        // Disable button until destination is selected
+        btnContinue.setEnabled(false);
+
         // Set Page State in MainActivity
         mCallback.setPageState(getString(R.string.path));
 
+        // Get Location Client
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
 
         /**
@@ -110,7 +139,7 @@ public class PathFragment extends Fragment
 
         // Replace fragment and add to back stack
         transaction.replace(R.id.gMap, gMapFragment);
-        //transaction.addToBackStack(null);
+        transaction.addToBackStack(null);
 
         // Commit the transaction
         transaction.commit();
@@ -118,24 +147,38 @@ public class PathFragment extends Fragment
         // Load Map Async
         if (gMapFragment != null) {
             gMapFragment.getMapAsync(this);
-            //return gMapFragment.getView();
         } else {
             Toast.makeText(getActivity().getApplicationContext(), "Error - Map Fragment was null!!", Toast.LENGTH_SHORT).show();
             return null;
         }
 
-        View mapView = inflater.inflate(R.layout.fragment_path, container, false);
-
-        // Initialize UI Widgets
-        btnDestination = (FloatingActionButton) mapView.findViewById(R.id.btnDestination);
-        btnContinue = (Button) mapView.findViewById(R.id.btnContinue);
-        btnContinue.setEnabled(false);
-
-        // Register Listeners
-        btnDestination.setOnClickListener(this);
-        btnContinue.setOnClickListener(this);
-
         return mapView;
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        Log.d(TAG, "onAcitivityCreated()");
+        if (savedInstanceState != null) {
+            // Restore last state for checked position.
+            Log.d(TAG, "onAcitivityCreated(): " + savedInstanceState.toString());
+        }
+
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        Log.d(TAG, "onSaveInstanceState()");
+        if (origin != null){
+            outState.putDouble("olat",  origin.getPosition().latitude);
+            outState.putDouble("olong", origin.getPosition().longitude);
+        }
+        if (destination != null){
+            outState.putDouble("dlat",  destination.getPosition().latitude);
+            outState.putDouble("dlong", destination.getPosition().longitude);
+        }
+
     }
 
 
@@ -200,6 +243,10 @@ public class PathFragment extends Fragment
         if (requestCode == PLACE_PICKER_REQUEST) {
             Log.d(TAG, "OnActivityResult: PLACE_PICKER_REQUEST");
 
+            // Remove previous route if defined
+            if (polyline != null) polyline.remove();
+            if (destination != null) destination.remove();
+
             Place place = PlacePicker.getPlace(getContext(), data);
 
             destination = gMap.addMarker(new MarkerOptions().position(place.getLatLng())
@@ -263,32 +310,22 @@ public class PathFragment extends Fragment
         return false;
     }
 
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        Log.d(TAG, "onAcitivityCreated()");
-        if (savedInstanceState != null) {
-            // Restore last state for checked position.
-            Log.d(TAG, "onAcitivityCreated(): " + savedInstanceState.toString());
-        }
-
+    private boolean isRestored(){
+      return origin != null || destination != null;
     }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        Log.d(TAG, "onSaveInstanceState()");
-        if (origin != null){
-            outState.putDouble("olat",  origin.getPosition().latitude);
-            outState.putDouble("olong", origin.getPosition().longitude);
-        }
+    private void restoreViewIfNeeded(){
         if (destination != null){
-            outState.putDouble("dlat",  destination.getPosition().latitude);
-            outState.putDouble("dlong", destination.getPosition().longitude);
+            // Do Nothing
+        }else if(origin != null){
+            CameraUpdate cameraUpdate =
+                    CameraUpdateFactory.newLatLngZoom(origin.getPosition(), 15.0f);
+            gMap.moveCamera(cameraUpdate);
+
+            // Disable button until destination is selected
+            btnContinue.setEnabled(false);
         }
 
     }
-
     private void autoCameraUpdate(){
         ArrayList<Marker> markers = new ArrayList<Marker>();
         if (origin != null) markers.add(origin);
@@ -325,7 +362,7 @@ public class PathFragment extends Fragment
                     Log.d(TAG, encodedPolyline);
 
                     // Get waypoints from encoded polyline
-                    List<LatLng> waypoints = decodePoly(encodedPolyline);
+                    waypoints = decodePoly(encodedPolyline);
 
                     // Draw waypoints as a single polyline
                     drawRoute(waypoints);
@@ -384,6 +421,6 @@ public class PathFragment extends Fragment
             options.add(point);
         }
 
-        gMap.addPolyline(options);
+        polyline = gMap.addPolyline(options);
     }
 }

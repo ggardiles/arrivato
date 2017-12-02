@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     private String fragmentState = "PathFragment";
     private String tripID;
 
+    private Fragment pathFragment, trackFragment;
+
     // Global UI Widgets
     private TabLayout tabLayout;
 
@@ -133,18 +135,17 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
             getFragmentManager().popBackStack();
         }*/
         if (tab.getPosition() == 0){
-            /*if (fragmentState.equalsIgnoreCase(getString(R.string.user_select))){
+            if (fragmentState.equalsIgnoreCase(getString(R.string.user_select))){
                 fragment = new UserSelectFragment();
             } else if (fragmentState.equalsIgnoreCase(getString(R.string.confirmation))){
                 fragment = new ConfirmationFragment();
             } else if (fragmentState.equalsIgnoreCase(getString(R.string.sharing))){
                 fragment = new SharingFragment();
             } else {
-                fragment = new PathFragment();
-            }*/
-            fragment = new PathFragment();
+                fragment = pathFragment;
+            }
         } else if(tab.getPosition() == 1){
-            fragment = new TrackArrivalFragment();
+            fragment = trackFragment;//new TrackArrivalFragment();
         }
 
         transaction.replace(R.id.fragmentWrap, fragment);
@@ -273,14 +274,15 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     }
 
     private void launchInitialFragment(){
-        Fragment tabFragment = new PathFragment();
+        pathFragment = new PathFragment();// new SharingFragment();
+        trackFragment = new TrackArrivalFragment();
         //Fragment tabFragment = new UserSelectFragment();
 
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
 
         // Replace fragment and add to back stack
-        transaction.add(R.id.fragmentWrap, tabFragment);
-        //transaction.addToBackStack(null);
+        transaction.add(R.id.fragmentWrap, pathFragment);
+        transaction.addToBackStack(null);
 
         // Commit the transaction
         transaction.commit();

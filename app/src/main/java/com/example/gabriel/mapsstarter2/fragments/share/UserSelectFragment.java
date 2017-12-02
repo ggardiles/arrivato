@@ -44,7 +44,7 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     private ArrayList<String> users;
     private HashSet<String> selectedEmails = new HashSet<>();
     private double[] origin, destination;
-    private ArrayAdapter<String> adapter;
+    private ArrayAdapter<String> adapter, autoTVAdapter;
     private OnDataListener mCallback;
     private FirebaseFirestore db;
 
@@ -73,10 +73,20 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate()");
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         Log.d(TAG, "onCreateView()");
+
+        if (container != null) {
+            container.removeAllViews();
+        }
 
         // Set Page State in MainActivity
         mCallback.setPageState(getString(R.string.user_select));
@@ -86,8 +96,6 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
         // Instantiate UI Widgets
         btnSubmit = (Button) userSelectView.findViewById(R.id.btnContinue2);
-        btnSubmit.setEnabled(false);
-
         autoTvSearchUser = (AutoCompleteTextView) userSelectView.findViewById(R.id.autoTvSearchUser);
         lvUsers = (ListView) userSelectView.findViewById(R.id.lvUsers);
 
@@ -97,8 +105,13 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
 
         // Register Adapter
         adapter = new ArrayAdapter<>(getActivity(),
-                android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(selectedEmails));
+                android.R.layout.simple_dropdown_item_1line,
+                new ArrayList<String>(selectedEmails));
         lvUsers.setAdapter(adapter);
+
+
+        // Modify Widgets
+        btnSubmit.setEnabled(false);
 
         // Load User List
         loadUserList();
@@ -132,9 +145,9 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
                             // Load AutoTextView with users email content
                             Log.d(TAG, usersSet.toString());
                             users = new ArrayList<>(usersSet);
-                            ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(),
+                            autoTVAdapter = new ArrayAdapter<>(getActivity(),
                                     android.R.layout.simple_dropdown_item_1line, users);
-                            autoTvSearchUser.setAdapter(adapter);
+                            autoTvSearchUser.setAdapter(autoTVAdapter);
 
                         } else {
                             Log.d(TAG, "Error getting documents: ", task.getException());

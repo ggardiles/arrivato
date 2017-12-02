@@ -88,6 +88,7 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
         // Get Data from Main Activity
         mCallback.getSharingData();
 
+        // Remove Backstack
         return v;
     }
 
@@ -190,5 +191,11 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
 
         // Commit the transaction
         transaction.commit();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop()");
     }
 }

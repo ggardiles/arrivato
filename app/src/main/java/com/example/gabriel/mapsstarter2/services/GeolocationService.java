@@ -141,7 +141,7 @@ public class GeolocationService extends Service {
                 null /* Looper */);
     }
 
-    private static double distance(LatLng position, LatLng destination) {
+    public static double distance(LatLng position, LatLng destination) {
 
         double lat1 = position.latitude,  lat2 = destination.latitude;
         double lon1 = position.longitude, lon2 = destination.longitude;

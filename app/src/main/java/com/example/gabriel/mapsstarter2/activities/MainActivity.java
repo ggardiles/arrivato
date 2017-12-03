@@ -10,6 +10,7 @@ import android.location.Geocoder;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -17,10 +18,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import com.example.gabriel.mapsstarter2.Manifest;
 import com.example.gabriel.mapsstarter2.R;
+import com.example.gabriel.mapsstarter2.adapters.TripsAdapter;
 import com.example.gabriel.mapsstarter2.fragments.share.ConfirmationFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.PathFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.SharingFragment;
@@ -36,14 +39,22 @@ import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.firebase.ui.auth.ResultCodes;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -210,57 +221,11 @@ public class MainActivity extends AppCompatActivity
         transaction.commit();
     }
 
-    private String latlngToAddress(LatLng position){
-        if (getApplicationContext() == null){
-            return "";
-        }
-        Geocoder geocoder = new Geocoder(getApplicationContext());
-        try {
-            List<Address> addresses =
-                    geocoder.getFromLocation(position.latitude,
-                            position.longitude, 1);
-            if (addresses.isEmpty()){
-                Log.w(TAG, "Empty addresses for position: " + position.toString());
-            }
-            Address address = addresses.get(0);
-            return address.getAddressLine(0);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
 
     @Override
     public void launchFirstFragment() {
         pathFragment = new PathFragment();
         launchLastPageOnTab(0);
-    }
-
-    private class TranslateToAddress implements Runnable {
-        private LatLng latLng;
-        private Preference<String> pref;
-        public TranslateToAddress(LatLng latLng, Preference<String> pref) {
-            super();
-            this.latLng = latLng;
-            this.pref = pref;
-        }
-
-        @Override
-        public void run() {
-            // Get Address
-            if (latLng == null){
-                return;
-            }
-            String address = latlngToAddress(latLng);
-            if (address != null){
-                pref.set(address);
-            }
-        }
     }
 
     @Override
@@ -298,7 +263,7 @@ public class MainActivity extends AppCompatActivity
                 cancelTripIfInProgress();
 
                 // Stop Geolocation Service
-                Intent intent = new Intent(this, GeolocationService.class);
+                Intent intent = new Intent(getApplicationContext(), GeolocationService.class);
                 stopService(intent);
 
                 // Clear all session variables
@@ -373,20 +338,39 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void saveUserToDB(FirebaseUser user) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         // Create User
-        User userModel = new User(user.getDisplayName(), user.getEmail());
+        final User userModel = new User(user.getDisplayName(), user.getEmail());
 
-        // Query Firestore for users
-        db.collection(getString(R.string.users_collection))
-                .add(userModel.getCustomHashMap())
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Error adding document", e);
-                    }
-                });
+        Query query = db.collection(getString(R.string.users_collection))
+                .whereEqualTo("email", user.getEmail());
+
+        query.addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot value,
+                                @Nullable FirebaseFirestoreException e) {
+                Log.d(TAG, "onEvent()");
+                if (e != null) {
+                    Log.w(TAG, "Listen failed.", e);
+                    return;
+                }
+
+                if (value.isEmpty()){
+                    Log.d(TAG, "Document Empty, creating user");
+                    db.collection(getString(R.string.users_collection))
+                            .add(userModel.getCustomHashMap())
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w(TAG, "Error adding document", e);
+                                }
+                            });
+                } else {
+                   Log.d(TAG, "Document not empty, no need to create user");
+                }
+            }
+        });
     }
 
     private void launchInitialFragment(){
@@ -399,21 +383,82 @@ public class MainActivity extends AppCompatActivity
         // Commit the transaction
         transaction.commit();
     }
+
     private void cancelTripIfInProgress(){
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         Preference<String> tripIDPref = rxPreferences.getString(getString(R.string.pref_trip_id));
         String tripID = tripIDPref.get();
-        if (tripID == null){
+        if (tripID == null || tripID.isEmpty()){
             Log.d(TAG, "Trip was not started");
             return;
         }
         Log.d(TAG, "Cancelling Trip: "+tripID);
         DocumentReference documentReference = db.collection("trips")
                 .document(tripID);
-        documentReference.update("status", Trip.CANCELED);
+        documentReference.update("status", Trip.CANCELED)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        Log.d(TAG, "Success deleting trip");
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.d(TAG, "Failure deleting trip");
+                    }
+                });
 
     }
+
+    private String latlngToAddress(LatLng position){
+        if (getApplicationContext() == null){
+            return "";
+        }
+        Geocoder geocoder = new Geocoder(getApplicationContext());
+        try {
+            List<Address> addresses =
+                    geocoder.getFromLocation(position.latitude,
+                            position.longitude, 1);
+            if (addresses.isEmpty()){
+                Log.w(TAG, "Empty addresses for position: " + position.toString());
+            }
+            Address address = addresses.get(0);
+            return address.getAddressLine(0);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    private class TranslateToAddress implements Runnable {
+        private LatLng latLng;
+        private Preference<String> pref;
+        public TranslateToAddress(LatLng latLng, Preference<String> pref) {
+            super();
+            this.latLng = latLng;
+            this.pref = pref;
+        }
+
+        @Override
+        public void run() {
+            // Get Address
+            if (latLng == null){
+                return;
+            }
+            String address = latlngToAddress(latLng);
+            if (address != null){
+                pref.set(address);
+            }
+        }
+    }
+
 }
 
 

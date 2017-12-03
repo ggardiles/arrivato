@@ -23,7 +23,8 @@ public class Trip {
     private HashSet<String> viewers;
     private String status;
 
-    public Trip(String traveler, LatLng location, LatLng destination, String destinationStr, HashSet<String> viewers) {
+    public Trip(String traveler, LatLng location, LatLng destination,
+                String destinationStr, HashSet<String> viewers) {
         this.traveler = traveler;
         this.location = location;
         this.destination = destination;

@@ -214,6 +214,7 @@ public class PathFragment extends Fragment
                                     if (destination != null){
                                         destination = gMap.addMarker(new MarkerOptions().position(destination.getPosition())
                                                 .title("Destination"));
+                                        btnContinue.setEnabled(true);
                                     }
 
                                     autoCameraUpdate();
@@ -308,7 +309,7 @@ public class PathFragment extends Fragment
         // Commit the transaction
         transaction.commit();
     }
-    
+
     private void autoCameraUpdate(){
 
         ArrayList<Marker> markers = new ArrayList<Marker>();

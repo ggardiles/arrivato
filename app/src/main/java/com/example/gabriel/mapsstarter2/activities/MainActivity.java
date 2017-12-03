@@ -53,7 +53,7 @@ import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
 public class MainActivity extends AppCompatActivity
-        implements TabLayout.OnTabSelectedListener {
+        implements TabLayout.OnTabSelectedListener, OnDataListener {
 
     // Global Constants
     private static final String TAG = "MainActivity";
@@ -233,6 +233,12 @@ public class MainActivity extends AppCompatActivity
             return null;
         }
 
+    }
+
+    @Override
+    public void launchFirstFragment() {
+        pathFragment = new PathFragment();
+        launchLastPageOnTab(0);
     }
 
     private class TranslateToAddress implements Runnable {

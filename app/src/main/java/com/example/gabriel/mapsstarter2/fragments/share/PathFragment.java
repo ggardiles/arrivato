@@ -76,6 +76,7 @@ public class PathFragment extends Fragment
     private static final LatLng STRATFORD = new LatLng(41.94561420000001, -87.64343509999998);
     private static final int PADDING = 350;
     private static final int PLACE_PICKER_REQUEST = 1;
+    private static final LatLng CHICAGO = new LatLng(41.878307, -87.635005);
 
     // Global Variables
     private GoogleMap gMap;
@@ -128,11 +129,6 @@ public class PathFragment extends Fragment
         btnDestination.setOnClickListener(this);
         btnContinue.setOnClickListener(this);
 
-        // Check if view is restored
-        if (isRestored()){
-            return mapView;
-        }
-
         // Disable button until destination is selected
         btnContinue.setEnabled(false);
 
@@ -169,32 +165,6 @@ public class PathFragment extends Fragment
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        Log.d(TAG, "onAcitivityCreated()");
-        if (savedInstanceState != null) {
-            // Restore last state for checked position.
-            Log.d(TAG, "onAcitivityCreated(): " + savedInstanceState.toString());
-        }
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        Log.d(TAG, "onSaveInstanceState()");
-        if (origin != null){
-            outState.putDouble("olat",  origin.getPosition().latitude);
-            outState.putDouble("olong", origin.getPosition().longitude);
-        }
-        if (destination != null){
-            outState.putDouble("dlat",  destination.getPosition().latitude);
-            outState.putDouble("dlong", destination.getPosition().longitude);
-        }
-
-    }
-
-
-    @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d(TAG, "Event: onMapReady");
 
@@ -213,6 +183,8 @@ public class PathFragment extends Fragment
         gMap.setMyLocationEnabled(true);
         gMap.setOnMyLocationButtonClickListener(this);
 
+        CameraUpdate firstCameraUpdate = CameraUpdateFactory.newLatLngZoom(CHICAGO, 8.0f);
+        gMap.moveCamera(firstCameraUpdate);
         // Map is Loaded
         gMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
 
@@ -234,6 +206,15 @@ public class PathFragment extends Fragment
                                     origin = gMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude()))
                                             .title("Origin")
                                             .snippet("Current Location"));
+
+                                    // Check if view is restored
+                                    if (waypoints != null){
+                                        drawRoute(waypoints);
+                                    }
+                                    if (destination != null){
+                                        destination = gMap.addMarker(new MarkerOptions().position(destination.getPosition())
+                                                .title("Destination"));
+                                    }
 
                                     autoCameraUpdate();
                                 }
@@ -327,12 +308,9 @@ public class PathFragment extends Fragment
         // Commit the transaction
         transaction.commit();
     }
-
-    private boolean isRestored(){
-      return destination != null;
-    }
     
     private void autoCameraUpdate(){
+
         ArrayList<Marker> markers = new ArrayList<Marker>();
         if (origin != null) markers.add(origin);
         if (destination != null) markers.add(destination);

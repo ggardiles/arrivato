@@ -90,8 +90,8 @@ public class TrackArrivalFragment extends Fragment {
             return;
         }
         Query query = db.collection("trips")
-                .whereEqualTo("user_"+user.getEmail().replace(".", ""), true)
-                .whereEqualTo("status", Trip.STARTED);
+                .whereEqualTo("user_"+user.getEmail().replace(".", ""), true);
+
         registration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value,
@@ -116,6 +116,10 @@ public class TrackArrivalFragment extends Fragment {
                             }
                             if (doc.contains("status")){
                                 trip.setStatus(doc.getString("status"));
+                            }
+
+                            if (trip.getStatus().equals(Trip.CANCELED)){
+                                continue;
                             }
                             trips.add(trip);
                         }

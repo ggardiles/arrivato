@@ -50,6 +50,7 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
     private static final String TAG = "SharingFragment";
 
     // Global Fields
+    private OnDataListener mCallback;
     private String tripID, destinationAddress = "";
     private RxSharedPreferences rxPreferences;
     private boolean isTripBeinTracked = false;
@@ -60,6 +61,17 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
     private ProgressBar pvArrivalTime;
 
     public SharingFragment() {}
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        try {
+            mCallback = (OnDataListener) context;
+        } catch (ClassCastException e){
+            throw new ClassCastException(context.toString()
+                    + " must implement OnDataListener");
+        }
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -171,6 +183,9 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
                 // Cancel Trip
                 cancelTrip();
 
+                // Delete session data
+                rxPreferences.clear();
+
                 // To Initial Fragment
                 initialFragment();
                 break;
@@ -240,16 +255,8 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
             };
 
     private void initialFragment(){
-        // Prepare Fragment Transition
-        Fragment fragment = new PathFragment();
-        FragmentTransaction transaction = getFragmentManager().beginTransaction();
-
-        // Replace fragment and add to back stack
-        transaction.replace(R.id.fragmentWrap, fragment);
-        transaction.addToBackStack(null);
-
-        // Commit the transaction
-        transaction.commit();
+        rxPreferences.clear();
+        mCallback.launchFirstFragment();
     }
 
     @Override

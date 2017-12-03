@@ -39,16 +39,13 @@ public class TrackArrivalFragment extends Fragment {
     private final static String TAG = "TrackArrivalFragment";
 
     // Global Fields
-    private String username;
     private ListenerRegistration registration;
     private TripsAdapter adapter;
 
     // Global UI Widgets
     private RecyclerView rv;
 
-    public TrackArrivalFragment() {
-        // Required empty public constructor
-    }
+    public TrackArrivalFragment() {}
 
 
     @Override
@@ -64,9 +61,6 @@ public class TrackArrivalFragment extends Fragment {
         // Set Linear layout for recycler view
         LinearLayoutManager llm = new LinearLayoutManager(getActivity());
         rv.setLayoutManager(llm);
-
-        // TODO: Should dynamically get current username making request
-        this.username = "gabriel";
 
         // Query Trip Data shared with this user
         trackMyTrips();
@@ -96,7 +90,8 @@ public class TrackArrivalFragment extends Fragment {
             return;
         }
         Query query = db.collection("trips")
-                .whereEqualTo("user_"+user.getEmail().replace(".", ""), true);
+                .whereEqualTo("user_"+user.getEmail().replace(".", ""), true)
+                .whereEqualTo("status", Trip.STARTED);
         registration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value,

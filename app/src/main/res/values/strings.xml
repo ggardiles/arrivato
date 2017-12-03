@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Arrivatto</string>
+    <string name="app_name">Arrivato</string>
     <string name="title_activity_maps">Map</string>
 
     <!-- UI Texts -->
@@ -37,5 +37,21 @@
 
     <string name="pref_show_canceled_trips">Show Canceled Trips</string>
     <string name="pref_show_finished_trips">Show Finished Trips</string>
+
+
+    <!-- RxPreferences -->
+    <string name="pref_page">page</string>
+    <string name="page_path">1</string>
+    <string name="page_user_select">2</string>
+    <string name="page_confirmation">3</string>
+    <string name="page_sharing">4</string>
+    <string name="page_tracking">5</string>
+
+    <string name="pref_trip_id">trip_id</string>
+    <string name="pref_origin">origin</string>
+    <string name="pref_destination">destination</string>
+    <string name="pref_origin_str">origin_str</string>
+    <string name="pref_destination_str">destination_str</string>
+    <string name="pref_email_list">email_list</string>
 
 </resources>

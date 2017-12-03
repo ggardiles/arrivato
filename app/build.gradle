@@ -55,6 +55,7 @@ dependencies {
 
     // Http Libraries
     compile 'com.loopj.android:android-async-http:1.4.9'
+    compile 'com.google.code.gson:gson:2.8.2'
 
     // Testing
     testCompile 'junit:junit:4.12'

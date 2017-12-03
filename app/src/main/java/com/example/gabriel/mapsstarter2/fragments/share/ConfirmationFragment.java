@@ -4,10 +4,12 @@ package com.example.gabriel.mapsstarter2.fragments.share;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,10 +21,13 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.example.gabriel.mapsstarter2.activities.MainActivity;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.models.Trip;
 import com.example.gabriel.mapsstarter2.services.GeolocationService;
+import com.f2prateek.rx.preferences2.Preference;
+import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -35,6 +40,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 
 
 public class ConfirmationFragment extends Fragment implements View.OnClickListener{
@@ -43,12 +53,12 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
     private static final String TAG = "ConfirmationFragment";
 
     // Global Fields
-    private OnDataListener mCallback;
     private ArrayAdapter<String> adapter;
     private String originAddress, destAddress;
     private LatLng origin, destination;
     private FirebaseFirestore db;
     private String tripID;
+    private RxSharedPreferences rxPreferences;
 
     // UI Widgets
     private ListView lvViewers;
@@ -60,17 +70,166 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
     public ConfirmationFragment() {}
 
     @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        rxPreferences = RxSharedPreferences.create(preferences);
 
-        // This makes sure that the container activity has implemented
-        // the callback interface. If not, it throws an exception
-        try {
-            mCallback = (OnDataListener) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context.toString()
-                    + " must implement OnHeadlineSelectedListener");
-        }
+        // Set Listeners
+        setRxPreferencesListeners();
+    }
+
+    private void saveDataToRxPrefs(){
+        Preference<String> tripIDPref  =
+                rxPreferences.getString(getString(R.string.pref_trip_id));
+
+        tripIDPref.set(tripID);
+    }
+
+    private void setRxPreferencesListeners(){
+        Preference<String> origPref  = rxPreferences.getString(getString(R.string.pref_origin));
+        Preference<String> destPref = rxPreferences.getString(getString(R.string.pref_destination));
+        Preference<String> originStrPref  = rxPreferences.getString(getString(R.string.pref_origin_str));
+        Preference<String> destStrPref  = rxPreferences.getString(getString(R.string.pref_destination_str));
+        Preference<Set<String>> userEmailsPref  = rxPreferences.getStringSet(getString(R.string.pref_email_list));
+
+
+        Observable<String> observOrigin = origPref.asObservable();
+        observOrigin.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String originLocal) {
+                Log.d(TAG, "Origin: " + String.valueOf(originLocal));
+                if (originLocal.isEmpty()){
+                    return;
+                }
+                // Parse String to LatLng
+                String[] latlong =  originLocal.split(",");
+                double latitude = Double.parseDouble(latlong[0]);
+                double longitude = Double.parseDouble(latlong[1]);
+                origin = new LatLng(latitude, longitude);
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+        Observable<String> obserDest = destPref.asObservable();
+        obserDest.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String dest) {
+                Log.d(TAG, "Destination: " + String.valueOf(dest));
+                if (dest.isEmpty()){
+                    return;
+                }
+                // Parse String to LatLng
+                String[] latlong =  dest.split(",");
+                double latitude = Double.parseDouble(latlong[0]);
+                double longitude = Double.parseDouble(latlong[1]);
+                destination = new LatLng(latitude, longitude);
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+        Observable<String> observOriginStr = originStrPref.asObservable();
+        observOriginStr.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String origin) {
+                Log.d(TAG, "Origin STR: " + origin);
+                if (origin.isEmpty()){
+                    return;
+                }
+                originAddress = origin;
+
+                if (tvFrom == null){
+                    Log.d(TAG, "Origing STR: view not created yet, skipping");
+                    return;
+                }
+                if (originAddress != null && destAddress != null) {
+                    // Remove Spinner
+                    pbAddress.setVisibility(ProgressBar.GONE);
+
+                    // Enable Confirm Button
+                    btnConfirm.setEnabled(true);
+                }
+                // Update Textviews
+                tvFrom.setText(originAddress);
+
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+        Observable<String> observDestStr = destStrPref.asObservable();
+        observDestStr.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String dest) {
+                Log.d(TAG, "Dest STR: " + dest);
+                if (dest.isEmpty()){
+                    return;
+                }
+                destAddress = dest;
+
+                if (tvTo == null){
+                    Log.d(TAG, "Dest STR: view not created yet, skipping");
+                    return;
+                }
+                if (originAddress != null && destAddress != null) {
+                    // Remove Spinner
+                    pbAddress.setVisibility(ProgressBar.GONE);
+
+                    // Enable Confirm Button
+                    btnConfirm.setEnabled(true);
+                }
+                // Update Textview
+                tvTo.setText(destAddress);
+
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+        Observable<Set<String>> observEmails = userEmailsPref.asObservable();
+        observEmails.subscribe(new Observer<Set<String>>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(Set<String> emailsLocal) {
+                Log.d(TAG, "user emails: " + emailsLocal.toString());
+                if (emailsLocal.isEmpty()){
+                    return;
+                }
+
+                emails = new HashSet<>(emailsLocal);
+
+                if (adapter != null) {
+                    adapter.clear();
+                    adapter.addAll(new ArrayList<>(emails));
+                    adapter.notifyDataSetChanged();
+                }
+
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
     }
 
     @Override
@@ -84,69 +243,47 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
         }
 
         // Set Page State in MainActivity
-        mCallback.setPageState(getString(R.string.confirmation));
+        Preference<String> pagePref = rxPreferences.getString(getString(R.string.pref_page));
+        pagePref.set(getString(R.string.page_confirmation));
 
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_confirmation, container, false);
 
         // Initialize UI Widgets
         lvViewers = (ListView) v.findViewById(R.id.lvViewers);
-        adapter = new ArrayAdapter<String>(getActivity(),
-                android.R.layout.simple_dropdown_item_1line);
-        lvViewers.setAdapter(adapter);
-
         tvFrom = (TextView) v.findViewById(R.id.tvFrom);
         tvTo = (TextView) v.findViewById(R.id.tvTo);
         btnConfirm = (Button) v.findViewById(R.id.btnConfirm);
+        pbAddress = (ProgressBar) v.findViewById(R.id.pb_address);
+
+        // Configure UI Widgets
+        adapter = new ArrayAdapter<String>(getActivity(),
+                android.R.layout.simple_dropdown_item_1line, new ArrayList<>(emails));
+        lvViewers.setAdapter(adapter);
+
+        // Set Button Click Listeners
         btnConfirm.setOnClickListener(this);
         btnConfirm.setEnabled(false);
-        pbAddress = (ProgressBar) v.findViewById(R.id.pb_address);
+
+        // Spinner Visible
         pbAddress.setVisibility(ProgressBar.VISIBLE);
 
-        // Ask Main Activity for Confirmation Data
-        mCallback.getConfirmationData();
+        // If not null change textview
+        if (originAddress != null){
+            tvFrom.setText(originAddress);
+        }
+        if (destAddress != null){
+            tvTo.setText(destAddress);
+        }
+        if (originAddress != null && destAddress != null) {
+            // Remove Spinner
+            pbAddress.setVisibility(ProgressBar.GONE);
+
+            // Enable Confirm Button
+            btnConfirm.setEnabled(true);
+        }
 
         return v;
-    }
-    private String latlngToAddress(LatLng position){
-        if (getActivity() == null){
-            return "";
-        }
-        Geocoder geocoder = new Geocoder(getActivity());
-        try {
-            List<Address> addresses =
-                    geocoder.getFromLocation(position.latitude,
-                            position.longitude, 1);
-            if (addresses.isEmpty()){
-                Log.w(TAG, "Empty addresses for position: " + position.toString());
-            }
-            Address address = addresses.get(0);
-            return address.getAddressLine(0);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-    public void onConfirmationData(LatLng origin, LatLng destination, HashSet<String> emails){
-        Log.d(TAG, "onConfirmationData(): " + new ArrayList<>(emails).toString());
-
-        this.origin = origin;
-        this.destination = destination;
-
-        // Update Textview with addressess on separate thread
-        new Thread(new TranslateToAddress()).start();
-
-        // Load emails to ListView
-        this.emails = emails;
-        adapter.clear();
-        adapter.addAll(new ArrayList<>(emails));
-        adapter.notifyDataSetChanged();
-
     }
 
     @Override
@@ -161,17 +298,6 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
 
                 break;
         }
-    }
-
-    private void startGeolocationService() {
-        Intent intent = new Intent(getActivity(), GeolocationService.class);
-        intent.putExtra("trip_id", tripID);
-        intent.putExtra("origin_latitude",  origin.latitude);
-        intent.putExtra("origin_longitude", origin.longitude);
-        intent.putExtra("destination_latitude",  destination.latitude);
-        intent.putExtra("destination_longitude", destination.longitude);
-
-        getActivity().startService(intent);
     }
 
     private void publishTrip() {
@@ -197,7 +323,9 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
 
                         // Save Trip ID
                         tripID = documentReference.getId();
-                        mCallback.setTripID(documentReference.getId());
+
+                        // Save Data
+                        saveDataToRxPrefs();
 
                         // Start GeolocationService
                         startGeolocationService();
@@ -214,34 +342,16 @@ public class ConfirmationFragment extends Fragment implements View.OnClickListen
                 });
     }
 
-    private class TranslateToAddress implements Runnable {
-        @Override
-        public void run() {
-            // Get Addressess
-            originAddress = latlngToAddress(origin);
-            destAddress = latlngToAddress(destination);
+    private void startGeolocationService() {
+        Log.d(TAG, "startGeolocationService()");
+        Intent intent = new Intent(getActivity(), GeolocationService.class);
+        intent.putExtra("trip_id", tripID);
+        intent.putExtra("origin_latitude",  origin.latitude);
+        intent.putExtra("origin_longitude", origin.longitude);
+        intent.putExtra("destination_latitude",  destination.latitude);
+        intent.putExtra("destination_longitude", destination.longitude);
 
-            // Notify MainActivity
-            mCallback.setStrAddresses(originAddress, destAddress);
-
-            if (getActivity() != null) {
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        pbAddress.setVisibility(ProgressBar.GONE);
-
-                        // Update Textviews
-                        tvFrom.setText(originAddress);
-                        tvTo.setText(destAddress);
-
-                        // Enable Confirm Button
-                        btnConfirm.setEnabled(true);
-                    }
-                });
-            }
-
-
-        }
+        getActivity().startService(intent);
     }
 
     private void nextFragment(){

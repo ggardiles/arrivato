@@ -34,6 +34,11 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Set;
+
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 
 
 /**
@@ -45,47 +50,91 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
     private static final String TAG = "SharingFragment";
 
     // Global Fields
-    private OnDataListener mCallback;
-    private String tripID;
-    private String destinationAddress;
+    private String tripID, destinationAddress = "";
+    private RxSharedPreferences rxPreferences;
+    private boolean isTripBeinTracked = false;
 
     // UI Widgets
     private Button btnCancel;
     private TextView tvArrivalTime, tvDestination;
     private ProgressBar pvArrivalTime;
 
-    public SharingFragment() {
-        // Required empty public constructor
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        try {
-            mCallback = (OnDataListener) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context.toString()
-                    + " must implement OnHeadlineSelectedListener");
-        }
-    }
+    public SharingFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate()");
         SharedPreferences preferences =
                 PreferenceManager.getDefaultSharedPreferences(getActivity());
-        RxSharedPreferences rxPreferences = RxSharedPreferences.create(preferences);
-        Preference<Float> foo = rxPreferences.getFloat("foo");
-        foo.set(2.0f);
+        rxPreferences = RxSharedPreferences.create(preferences);
+
+        // Register Listeners
+        setRxPreferencesListeners();
     }
+
+
+    private void setRxPreferencesListeners(){
+        Preference<String> tripIDPref  =
+                rxPreferences.getString(getString(R.string.pref_trip_id));
+        Preference<String> destStrPref  =
+                rxPreferences.getString(getString(R.string.pref_destination_str));
+
+        Observable<String> observDestStr = destStrPref.asObservable();
+        observDestStr.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String dest) {
+                Log.d(TAG, "Dest STR: " + dest);
+                if (dest.isEmpty()){
+                    return;
+                }
+                destinationAddress = dest;
+
+                if (tvDestination != null) {
+                    tvDestination.setText(dest);
+                }
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+        Observable<String> tripIDObsv = tripIDPref.asObservable();
+        tripIDObsv.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String tripId) {
+                Log.d(TAG, "TripID: " + tripId);
+                if (tripId.isEmpty()){
+                    return;
+                }
+                tripID = tripId;
+                if (!isTripBeinTracked) {
+                    isTripBeinTracked = true;
+                    trackTrip();
+                }
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+    }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView()");
 
-        // Set Page State in MainActivity
-        mCallback.setPageState(getString(R.string.sharing));
+        // Set Page State
+        Preference<String> pagePref = rxPreferences.getString(getString(R.string.pref_page));
+        pagePref.set(getString(R.string.page_sharing));
 
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_sharing, container, false);
@@ -100,10 +149,14 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
         btnCancel.setOnClickListener(this);
         pvArrivalTime.setVisibility(ProgressBar.VISIBLE);
 
-        // Get Data from Main Activity
-        mCallback.getSharingData();
+        // Set Destination
+        tvDestination.setText(destinationAddress);
 
-        // Remove Backstack
+        // Track Trip
+        if (!isTripBeinTracked) {
+            isTripBeinTracked = true;
+            trackTrip();
+        }
         return v;
     }
 
@@ -122,16 +175,6 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
                 initialFragment();
                 break;
         }
-    }
-    public void onSharingData(String tripID, String destination){
-        Log.d(TAG, "onSharingData() TripID: " + tripID
-                + " - destinationAddress: " + destination);
-        this.tripID = tripID;
-        this.destinationAddress = destination;
-        tvDestination.setText(destination);
-
-        // Start tracking location
-        trackTrip();
     }
 
     private void cancelTrip(){
@@ -195,6 +238,7 @@ public class SharingFragment extends Fragment  implements View.OnClickListener{
 
                 }
             };
+
     private void initialFragment(){
         // Prepare Fragment Transition
         Fragment fragment = new PathFragment();

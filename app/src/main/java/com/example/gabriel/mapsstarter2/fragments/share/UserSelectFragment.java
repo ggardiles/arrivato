@@ -3,8 +3,10 @@ package com.example.gabriel.mapsstarter2.fragments.share;
 
 import android.app.FragmentTransaction;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,6 +22,8 @@ import android.widget.Toast;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
 import com.example.gabriel.mapsstarter2.R;
 import com.example.gabriel.mapsstarter2.models.User;
+import com.f2prateek.rx.preferences2.Preference;
+import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
@@ -30,6 +34,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -43,10 +48,9 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     // Global variables
     private ArrayList<String> users;
     private HashSet<String> selectedEmails = new HashSet<>();
-    private double[] origin, destination;
-    private ArrayAdapter<String> adapter, autoTVAdapter;
-    private OnDataListener mCallback;
     private FirebaseFirestore db;
+    private RxSharedPreferences rxPreferences;
+    private ArrayAdapter<String> adapter, autoTVAdapter;
 
     // UI Widgets
     private Button btnSubmit;
@@ -54,28 +58,22 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
     private ListView lvUsers;
 
 
-    public UserSelectFragment() {
-        // Required empty public constructor
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-
-        // This makes sure that the container activity has implemented
-        // the callback interface. If not, it throws an exception
-        try {
-            mCallback = (OnDataListener) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context.toString()
-                    + " must implement OnHeadlineSelectedListener");
-        }
-    }
+    public UserSelectFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate()");
+        SharedPreferences preferences =
+                PreferenceManager.getDefaultSharedPreferences(getActivity());
+        rxPreferences = RxSharedPreferences.create(preferences);
+    }
+
+    private void saveDataToRxPrefs(){
+        Preference<Set<String>> userEmailsPref  =
+                rxPreferences.getStringSet(getString(R.string.pref_email_list));
+
+        userEmailsPref.set(selectedEmails);
     }
 
     @Override
@@ -89,7 +87,8 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
         }
 
         // Set Page State in MainActivity
-        mCallback.setPageState(getString(R.string.user_select));
+        Preference<String> pagePref = rxPreferences.getString(getString(R.string.pref_page));
+        pagePref.set(getString(R.string.page_user_select));
 
         // Inflate the layout for this fragment
         View userSelectView = inflater.inflate(R.layout.fragment_user_select, container, false);
@@ -179,30 +178,34 @@ public class UserSelectFragment extends Fragment implements View.OnClickListener
                     return;
                 }
 
-                // Pass data to activity
-                mCallback.onEmailsReady(selectedEmails);
+                // Save emails data
+                saveDataToRxPrefs();
 
-                // Prepare Fragment Transition
-                ConfirmationFragment confirmationFragment = new ConfirmationFragment();
-                FragmentTransaction transaction = getFragmentManager().beginTransaction();
-
-                // Replace fragment and add to back stack
-                transaction.replace(R.id.fragmentWrap, confirmationFragment);
-                transaction.addToBackStack(null);
-
-                // Commit the transaction
-                transaction.commit();
+                // Next Fragment
+                nextFragment();
                 break;
         }
     }
 
+    private void nextFragment() {
+        // Prepare Fragment Transition
+        ConfirmationFragment confirmationFragment = new ConfirmationFragment();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+
+        // Replace fragment and add to back stack
+        transaction.replace(R.id.fragmentWrap, confirmationFragment);
+        transaction.addToBackStack(null);
+
+        // Commit the transaction
+        transaction.commit();
+    }
+
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-
         // Get email
         String selected = (String) parent.getItemAtPosition(position);
         Log.d(TAG, "AutoCompleteTextview Item Selected: " + selected);
-        //int pos = users.indexOf(selected);
+
 
         // Add email to Set
         selectedEmails.add(selected);

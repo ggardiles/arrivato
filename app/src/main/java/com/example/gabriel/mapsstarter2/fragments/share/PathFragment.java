@@ -50,10 +50,13 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import cz.msebera.android.httpclient.Header;
+import io.reactivex.Observable;
 import io.reactivex.Observer;
 import io.reactivex.disposables.Disposable;
 
@@ -77,28 +80,16 @@ public class PathFragment extends Fragment
     // Global Variables
     private GoogleMap gMap;
     private Marker origin, destination;
-    private OnDataListener mCallback;
     private FusedLocationProviderClient mFusedLocationClient;
     private List<LatLng> waypoints;
     private Polyline polyline;
+    private RxSharedPreferences rxPreferences;
 
     // Global UI Widgets
     private Button btnContinue;
     private FloatingActionButton btnDestination;
 
-    public PathFragment() {
-    }
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        try {
-            mCallback = (OnDataListener) context;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(context.toString()
-                    + " must implement OnHeadlineSelectedListener");
-        }
-    }
+    public PathFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -106,20 +97,20 @@ public class PathFragment extends Fragment
         Log.d(TAG, "onCreate()");
         SharedPreferences preferences =
                 PreferenceManager.getDefaultSharedPreferences(getActivity());
-        RxSharedPreferences rxPreferences = RxSharedPreferences.create(preferences);
-        Preference<Float> foo = rxPreferences.getFloat("foo");
-        foo.asObservable().subscribe(new Observer<Float>() {
-            @Override
-            public void onSubscribe(Disposable d) {}
-            @Override
-            public void onNext(Float foo) {
-                Log.d(TAG, "Foo: " + String.valueOf(foo));
-            }
-            @Override
-            public void onError(Throwable e) {}
-            @Override
-            public void onComplete() {}
-        });
+        rxPreferences = RxSharedPreferences.create(preferences);
+    }
+
+    private void saveDataToRxPrefs(){
+        Preference<String> origPref  = rxPreferences.getString(getString(R.string.pref_origin));
+        Preference<String> destPref = rxPreferences.getString(getString(R.string.pref_destination));
+
+        String olat  = String.valueOf(origin.getPosition().latitude);
+        String olong = String.valueOf(origin.getPosition().longitude);
+        String dlat  = String.valueOf(destination.getPosition().latitude);
+        String dlong = String.valueOf(destination.getPosition().longitude);
+
+        origPref.set(olat+","+olong);
+        destPref.set(dlat+","+dlong);
     }
 
     @Override
@@ -137,9 +128,8 @@ public class PathFragment extends Fragment
         btnDestination.setOnClickListener(this);
         btnContinue.setOnClickListener(this);
 
-
+        // Check if view is restored
         if (isRestored()){
-            restoreViewIfNeeded();
             return mapView;
         }
 
@@ -147,7 +137,8 @@ public class PathFragment extends Fragment
         btnContinue.setEnabled(false);
 
         // Set Page State in MainActivity
-        mCallback.setPageState(getString(R.string.path));
+        Preference<String> pagePref = rxPreferences.getString(getString(R.string.pref_page));
+        pagePref.set(getString(R.string.page_path));
 
         // Get Location Client
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
@@ -185,7 +176,6 @@ public class PathFragment extends Fragment
             // Restore last state for checked position.
             Log.d(TAG, "onAcitivityCreated(): " + savedInstanceState.toString());
         }
-
     }
 
     @Override
@@ -309,22 +299,15 @@ public class PathFragment extends Fragment
                     return;
                 }
 
-                // Pass data to activity
-                mCallback.onLocationReady(origin.getPosition(), destination.getPosition());
+                // Save Data
+                saveDataToRxPrefs();
 
-                // Prepare Fragment Transition
-                UserSelectFragment userSelectFragment = new UserSelectFragment();
-                FragmentTransaction transaction = getFragmentManager().beginTransaction();
-
-                // Replace fragment and add to back stack
-                transaction.replace(R.id.fragmentWrap, userSelectFragment);
-                transaction.addToBackStack(null);
-
-                // Commit the transaction
-                transaction.commit();
+                // Next Fragment
+                nextFragment();
                 break;
         }
     }
+
 
     @Override
     public boolean onMyLocationButtonClick() {
@@ -332,22 +315,23 @@ public class PathFragment extends Fragment
         return false;
     }
 
+    private void nextFragment() {
+        // Prepare Fragment Transition
+        UserSelectFragment userSelectFragment = new UserSelectFragment();
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+
+        // Replace fragment and add to back stack
+        transaction.replace(R.id.fragmentWrap, userSelectFragment);
+        transaction.addToBackStack(null);
+
+        // Commit the transaction
+        transaction.commit();
+    }
+
     private boolean isRestored(){
-      return origin != null || destination != null;
+      return destination != null;
     }
-    private void restoreViewIfNeeded(){
-        if (destination != null){
-            // Do Nothing
-        }else if(origin != null){
-            CameraUpdate cameraUpdate =
-                    CameraUpdateFactory.newLatLngZoom(origin.getPosition(), 15.0f);
-            gMap.moveCamera(cameraUpdate);
-
-            // Disable button until destination is selected
-            btnContinue.setEnabled(false);
-        }
-
-    }
+    
     private void autoCameraUpdate(){
         ArrayList<Marker> markers = new ArrayList<Marker>();
         if (origin != null) markers.add(origin);

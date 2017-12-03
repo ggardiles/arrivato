@@ -5,6 +5,8 @@ import android.app.FragmentTransaction;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -25,7 +27,9 @@ import com.example.gabriel.mapsstarter2.fragments.share.SharingFragment;
 import com.example.gabriel.mapsstarter2.fragments.track.TrackArrivalFragment;
 import com.example.gabriel.mapsstarter2.fragments.share.UserSelectFragment;
 import com.example.gabriel.mapsstarter2.interfaces.OnDataListener;
+import com.example.gabriel.mapsstarter2.models.Trip;
 import com.example.gabriel.mapsstarter2.models.User;
+import com.example.gabriel.mapsstarter2.services.GeolocationService;
 import com.f2prateek.rx.preferences2.Preference;
 import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.firebase.ui.auth.AuthUI;
@@ -39,15 +43,22 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSelectedListener, OnDataListener {
+import io.reactivex.Observable;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
+
+public class MainActivity extends AppCompatActivity
+        implements TabLayout.OnTabSelectedListener {
 
     // Global Constants
     private static final String TAG = "MainActivity";
     private static final int RC_SIGN_IN = 201;
+    private static final int SETTINGS_CODE = 202;
 
     // Global Fields
     protected HashSet<String> selectedEmails;
@@ -55,11 +66,11 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     protected String originAddress, destinationAddress;
     private String fragmentState = "PathFragment";
     private String tripID;
-
-    private Fragment pathFragment, trackFragment;
+    private RxSharedPreferences rxPreferences;
 
     // Global UI Widgets
     private TabLayout tabLayout;
+    private Fragment pathFragment, trackFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,20 +91,170 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
         // SharedPreferences
         SharedPreferences preferences =
                 PreferenceManager.getDefaultSharedPreferences(this);
-        RxSharedPreferences rxPreferences = RxSharedPreferences.create(preferences);
-        Preference<Float> foo = rxPreferences.getFloat("foo");
-        foo.set(1.0f);
-        // Authenticate
-        authenticate();
-        /*
-        if (isAuthenticated()) {
+        rxPreferences = RxSharedPreferences.create(preferences);
 
+        // Listeners
+        setRxPreferencesListeners();
+
+        // Create Base Fragments
+        pathFragment = new PathFragment();
+        trackFragment = new TrackArrivalFragment();
+
+        // Authenticate
+        if (!isAuthenticated()) {
+            Log.d(TAG, "Authentication is required");
+            authenticate();
         } else {
             Log.d(TAG, "Already Logged In");
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            Toast.makeText(this, "Welcome, " + user.getEmail(), Toast.LENGTH_SHORT).show();
+        }
+
+        // Unless we are sharing a trip, launch initial fragment
+        Preference<String> pagePref = rxPreferences.getString(getString(R.string.pref_page));
+        String page = pagePref.get();
+
+        if (page.equalsIgnoreCase(getString(R.string.page_sharing))){
+            launchLastPageOnTab(0);
+        } else {
             launchInitialFragment();
-        }*/
+        }
+    }
+
+    private void setRxPreferencesListeners() {
+        Preference<String> origPref  = rxPreferences.getString(getString(R.string.pref_origin));
+        Preference<String> destPref = rxPreferences.getString(getString(R.string.pref_destination));
+
+        Observable<String> observOrigin = origPref.asObservable();
+        observOrigin.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String origin) {
+                Log.d(TAG, "Origin: " + String.valueOf(origin));
+                if (origin.isEmpty()){
+                    return;
+                }
+                // Parse String to LatLng
+                String[] latlong =  origin.split(",");
+                double latitude = Double.parseDouble(latlong[0]);
+                double longitude = Double.parseDouble(latlong[1]);
+                LatLng originLatLng = new LatLng(latitude, longitude);
+
+                Log.d(TAG, "Origin refactored: " + originLatLng.toString());
+                // Get reference to origin Address String
+                Preference<String> originStrPref = rxPreferences.getString(getString(R.string.pref_origin_str));
+
+                // Update Textview with addressess on separate thread
+                new Thread(new TranslateToAddress(originLatLng, originStrPref)).start();
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+
+        Observable<String> obserDest = destPref.asObservable();
+        obserDest.subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {}
+            @Override
+            public void onNext(String dest) {
+                Log.d(TAG, "Destination: " + String.valueOf(dest));
+                if (dest.isEmpty()){
+                    return;
+                }
+                // Parse String to LatLng
+                String[] latlong =  dest.split(",");
+                double latitude = Double.parseDouble(latlong[0]);
+                double longitude = Double.parseDouble(latlong[1]);
+                LatLng destLatLng = new LatLng(latitude, longitude);
+
+                Log.d(TAG, "Destination refactored: " + destLatLng.toString());
 
 
+                Preference<String> destStrPref = rxPreferences.getString(getString(R.string.pref_destination_str));
+
+                // Update Textview with addressess on separate thread
+                new Thread(new TranslateToAddress(destLatLng, destStrPref)).start();
+            }
+            @Override
+            public void onError(Throwable e) {}
+            @Override
+            public void onComplete() {}
+        });
+    }
+
+    private void launchLastPageOnTab(int tab){
+        FragmentTransaction transaction = getFragmentManager().beginTransaction();
+        Fragment fragment = null;
+
+        Preference<String> pagePref = rxPreferences.getString(getString(R.string.pref_page));
+        String page = pagePref.get();
+
+        if (tab == 0){
+            if (page.equalsIgnoreCase(getString(R.string.page_user_select))){
+                fragment = new UserSelectFragment();
+            } else if (page.equalsIgnoreCase(getString(R.string.page_confirmation))){
+                fragment = new ConfirmationFragment();
+            } else if (page.equalsIgnoreCase(getString(R.string.page_sharing))){
+                fragment = new SharingFragment();
+            } else {
+                fragment = pathFragment;
+            }
+        } else if(tab == 1){
+            fragment = trackFragment;
+        }
+
+        transaction.replace(R.id.fragmentWrap, fragment);
+        transaction.commit();
+    }
+
+    private String latlngToAddress(LatLng position){
+        if (getApplicationContext() == null){
+            return "";
+        }
+        Geocoder geocoder = new Geocoder(getApplicationContext());
+        try {
+            List<Address> addresses =
+                    geocoder.getFromLocation(position.latitude,
+                            position.longitude, 1);
+            if (addresses.isEmpty()){
+                Log.w(TAG, "Empty addresses for position: " + position.toString());
+            }
+            Address address = addresses.get(0);
+            return address.getAddressLine(0);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    private class TranslateToAddress implements Runnable {
+        private LatLng latLng;
+        private Preference<String> pref;
+        public TranslateToAddress(LatLng latLng, Preference<String> pref) {
+            super();
+            this.latLng = latLng;
+            this.pref = pref;
+        }
+
+        @Override
+        public void run() {
+            // Get Address
+            if (latLng == null){
+                return;
+            }
+            String address = latlngToAddress(latLng);
+            if (address != null){
+                pref.set(address);
+            }
+        }
     }
 
     @Override
@@ -113,22 +274,38 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
             if (resultCode == ResultCodes.OK) {
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                Log.e(TAG, "Sign in worked: " + user.toString());
+                Log.d(TAG, "Sign in worked: " + user.toString());
 
                 // Save User to DB
                 saveUserToDB(user);
-
-                // Go to Initial Page
-                launchInitialFragment();
             } else {
                 Log.e(TAG, "Sign in failed");
                 Toast.makeText(this, "Sign In Failed", Toast.LENGTH_SHORT).show();
             }
+        } else if (requestCode == SETTINGS_CODE){
+            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            Log.d(TAG, "USER: " + user);
+
+            if (user == null){
+                Log.d(TAG, "Signed Out");
+                // If trip in progress, cancel it
+                cancelTripIfInProgress();
+
+                // Stop Geolocation Service
+                Intent intent = new Intent(this, GeolocationService.class);
+                stopService(intent);
+
+                // Clear all session variables
+                rxPreferences.clear();
+
+                // Terminate App
+                finish();
+            }
         }
     }
-
     @Override
     public void onBackPressed() {
+        Log.d(TAG, "Back Pressed");
         if (getFragmentManager().getBackStackEntryCount() > 1) {
             getFragmentManager().popBackStack();
         } else {
@@ -138,30 +315,8 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
     @Override
     public void onTabSelected(TabLayout.Tab tab) {
-        //Log.d(TAG, String.valueOf(tab.getPosition()));
-        FragmentTransaction transaction = getFragmentManager().beginTransaction();
-        Fragment fragment = null;
-
-/*        for(int i = 0; i < getFragmentManager().getBackStackEntryCount(); ++i) {
-            getFragmentManager().popBackStack();
-        }*/
-        if (tab.getPosition() == 0){
-            if (fragmentState.equalsIgnoreCase(getString(R.string.user_select))){
-                fragment = new UserSelectFragment();
-            } else if (fragmentState.equalsIgnoreCase(getString(R.string.confirmation))){
-                fragment = new ConfirmationFragment();
-            } else if (fragmentState.equalsIgnoreCase(getString(R.string.sharing))){
-                fragment = new SharingFragment();
-            } else {
-                fragment = pathFragment;
-            }
-        } else if(tab.getPosition() == 1){
-            fragment = trackFragment;//new TrackArrivalFragment();
-        }
-
-        transaction.replace(R.id.fragmentWrap, fragment);
-        //transaction.addToBackStack(null);
-        transaction.commit();
+        // Launch Last page
+        launchLastPageOnTab(tab.getPosition());
     }
 
     @Override
@@ -175,66 +330,11 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     }
 
     @Override
-    public void onLocationReady(LatLng origin, LatLng destination) {
-        Log.d(TAG, "onLocationReady: " + String.valueOf(origin) + ", " + destination.toString());
-        this.origin = origin;
-        this.destination = destination;
-
-    }
-
-    @Override
-    public void onEmailsReady(HashSet<String> emails) {
-        Log.d(TAG, "onUsernameReady: " + String.valueOf(selectedEmails));
-        this.selectedEmails = emails;
-    }
-
-    @Override
-    public void setPageState(String fragmentName) {
-        Log.d(TAG, "setPageState: " + fragmentName);
-        this.fragmentState = fragmentName;
-    }
-
-    @Override
-    public void setStrAddresses(String origin, String destination) {
-        Log.d(TAG, "setStrAddresses()");
-        this.originAddress = origin;
-        this.destinationAddress = destination;
-    }
-
-    @Override
-    public void setTripID(String id) {
-        Log.d(TAG, "setTripID: " + id);
-        this.tripID = id;
-    }
-
-    @Override
-    public void getConfirmationData() {
-        Log.d(TAG, "getConfirmationData: " + selectedEmails.toString());
-        ConfirmationFragment frag = (ConfirmationFragment)
-                getFragmentManager().findFragmentById(R.id.fragmentWrap);
-
-        if (frag != null){
-            frag.onConfirmationData(origin, destination, selectedEmails);
-        }
-    }
-
-    @Override
-    public void getSharingData() {
-        Log.d(TAG, "getSharingData()");
-        SharingFragment frag = (SharingFragment)
-                getFragmentManager().findFragmentById(R.id.fragmentWrap);
-
-        if (frag != null){
-            frag.onSharingData(tripID, destinationAddress);
-        }
-    }
-
-    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_favorite:
                 Intent intent = new Intent(this, SettingsActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, SETTINGS_CODE);
                 return true;
 
             default:
@@ -284,10 +384,6 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
     }
 
     private void launchInitialFragment(){
-        pathFragment = new PathFragment();// new SharingFragment();
-        trackFragment = new TrackArrivalFragment();
-        //Fragment tabFragment = new UserSelectFragment();
-
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
 
         // Replace fragment and add to back stack
@@ -296,6 +392,21 @@ public class MainActivity extends AppCompatActivity implements TabLayout.OnTabSe
 
         // Commit the transaction
         transaction.commit();
+    }
+    private void cancelTripIfInProgress(){
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        Preference<String> tripIDPref = rxPreferences.getString(getString(R.string.pref_trip_id));
+        String tripID = tripIDPref.get();
+        if (tripID == null){
+            Log.d(TAG, "Trip was not started");
+            return;
+        }
+        Log.d(TAG, "Cancelling Trip: "+tripID);
+        DocumentReference documentReference = db.collection("trips")
+                .document(tripID);
+        documentReference.update("status", Trip.CANCELED);
+
     }
 }
 

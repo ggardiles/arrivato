@@ -53,6 +53,9 @@ dependencies {
     // Reactive Local Storage
     compile 'com.f2prateek.rx.preferences2:rx-preferences:2.0.0-RC3'
 
+    // Reactive Network state
+    compile 'com.github.pwittchen:reactivenetwork-rx2:0.12.2'
+
     // Http Libraries
     compile 'com.loopj.android:android-async-http:1.4.9'
     compile 'com.google.code.gson:gson:2.8.2'

@@ -72,8 +72,6 @@ public class PathFragment extends Fragment
 
     // Global Constant Fields
     private static final String TAG = "PathFragment";
-    private static final LatLng HALSTED = new LatLng(41.942683, -87.649343);
-    private static final LatLng STRATFORD = new LatLng(41.94561420000001, -87.64343509999998);
     private static final int PADDING = 350;
     private static final int PLACE_PICKER_REQUEST = 1;
     private static final LatLng CHICAGO = new LatLng(41.878307, -87.635005);
@@ -185,6 +183,7 @@ public class PathFragment extends Fragment
 
         CameraUpdate firstCameraUpdate = CameraUpdateFactory.newLatLngZoom(CHICAGO, 8.0f);
         gMap.moveCamera(firstCameraUpdate);
+
         // Map is Loaded
         gMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
 
@@ -218,6 +217,8 @@ public class PathFragment extends Fragment
                                     }
 
                                     autoCameraUpdate();
+                                }else{
+                                    Log.d(TAG, "Location NULL");
                                 }
                             }
                         });

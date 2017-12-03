@@ -2,11 +2,13 @@ package com.example.gabriel.mapsstarter2.activities;
 
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -38,6 +40,7 @@ import com.f2prateek.rx.preferences2.RxSharedPreferences;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.firebase.ui.auth.ResultCodes;
+import com.github.pwittchen.reactivenetwork.library.rx2.ReactiveNetwork;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -61,7 +64,10 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.Observer;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity
         implements TabLayout.OnTabSelectedListener, OnDataListener {
@@ -95,6 +101,25 @@ public class MainActivity extends AppCompatActivity
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 200);
         }
 
+        // Check if GPS is turned on
+        final LocationManager manager = (LocationManager) getSystemService( Context.LOCATION_SERVICE );
+        if ( !manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
+            Toast.makeText(getApplicationContext(), "GPS Required. Please turn on", Toast.LENGTH_SHORT).show();
+
+        }
+
+        // Check Internet Connection
+        ReactiveNetwork.observeInternetConnectivity()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<Boolean>() {
+                    @Override public void accept(Boolean isConnectedToInternet) {
+                        // do something with isConnectedToInternet value
+                        if (!isConnectedToInternet){
+                            Toast.makeText(getApplicationContext(), "Internet required. Please reconnect", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
         // Set listeners on tabs
         tabLayout = (TabLayout) findViewById(R.id.tabLayout);
         tabLayout.addOnTabSelectedListener(this);
